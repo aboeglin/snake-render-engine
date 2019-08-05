@@ -1,9 +1,26 @@
-const init = reducer => {
-  const dispatch = action => reducer(action);
+const { curry } = require("ramda");
 
-  return dispatch;
+const rect = curry((props, children = []) => {
+  return {
+    type: "RECTANGLE",
+    position: {
+      x: props.x,
+      y: props.y,
+      z: props.z,
+      width: props.width
+    },
+    children: children
+  };
+});
+
+const circle = () => {};
+
+const render = root => {
+  return root();
 };
 
 module.exports = {
-  init
+  render,
+  rect,
+  circle
 };
