@@ -48,6 +48,28 @@ describe("render engine", () => {
     expect(actual).toEqual(expected);
   });
 
+  test("The render function should be able to render custom logic nodes", () => {
+    const expected = {
+      type: "RECTANGLE",
+      position: { x: 1, y: 1, z: 1, width: 5 },
+      children: []
+    };
+
+    const customElement = props =>
+      SRE.rect({
+        x: props.x / 2,
+        y: props.y / 2,
+        z: props.z / 2,
+        width: props.width / 2
+      });
+
+    const actual = SRE.render(props =>
+      customElement({ x: 2, y: 2, z: 2, width: 10 })
+    );
+
+    expect(actual).toEqual(expected);
+  });
+
   test("It should have a circle function", done => {
     SRE.render(props => {
       expect(typeof SRE.circle).toBe("function");
