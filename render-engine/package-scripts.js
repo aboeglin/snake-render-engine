@@ -3,6 +3,7 @@ module.exports = {
     test: {
       default: "jest",
       watch: "jest --watch"
-    }
+    },
+    format: "prettier --write src/**/* && prettier --write src/*"
   }
 };
