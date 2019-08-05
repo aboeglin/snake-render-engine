@@ -1,0 +1,13 @@
+{
+  "name": "render-engine",
+  "version": "1.0.0",
+  "description": "2D render engine for the game",
+  "main": "index.js",
+  "author": "Arnaud Boeglin",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^24.8.0",
+    "nps": "^5.9.5",
+    "prettier": "^1.18.2"
+  }
+}
