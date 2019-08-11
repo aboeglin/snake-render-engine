@@ -1,3 +1,10 @@
+const makeGL = require("gl");
+const ndArray = require("ndarray");
+const savePixels = require("save-pixels");
+const { toMatchImageSnapshot } = require("jest-image-snapshot");
+
+expect.extend({ toMatchImageSnapshot });
+
 const SRE = require("./index");
 
 describe("render engine", () => {
@@ -90,4 +97,34 @@ describe("render engine", () => {
 
     expect(actual).toEqual(expected);
   });
+
+  describe("init", () => {
+    test("init should set a black background", done => {
+      const gl = makeGL(128, 128);
+      SRE.init(gl);
+
+      makeSnapshot(gl).then(ss => {
+        expect(ss).toMatchImageSnapshot();
+        done();
+      });
+    });
+  });
 });
+
+const makeSnapshot = gl => {
+  return new Promise((resolve, reject) => {
+    const canvasPixels = new Uint8Array(128 * 128 * 4);
+    gl.readPixels(0, 0, 128, 128, gl.RGBA, gl.UNSIGNED_BYTE, canvasPixels);
+    var nd = ndArray(canvasPixels, [128, 128, 4]);
+
+    const chunks = [];
+    const reader = savePixels(nd, ".png");
+    reader.on("data", chunk => {
+      chunks.push(chunk);
+    });
+
+    reader.on("end", () => {
+      resolve(Buffer.concat(chunks));
+    });
+  });
+};
