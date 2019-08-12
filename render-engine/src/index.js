@@ -13,8 +13,12 @@ const Rect = curry((props, children = []) => {
   };
 });
 
-const init = gl => {
-  gl.viewport(0, 0, 128, 128);
+let _viewportW, _viewportH;
+
+const init = (gl, viewportW, viewportH) => {
+  _viewportW = viewportW;
+  _viewportH = viewportH;
+  gl.viewport(0, 0, viewportW, viewportH);
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 };
@@ -27,17 +31,43 @@ precision highp float;
 uniform vec4 uColor;
 
 void main() {
-gl_FragColor = uColor;
+  gl_FragColor = uColor;
 }
 `;
 
 const VERTEX_SHADER = `
-attribute vec2 aVertexPosition;
+attribute vec3 aVertexPosition;
 
 void main() {
-gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+  gl_Position = vec4(aVertexPosition, 1.0);
 }
 `;
+
+const rectToVertexArr = rect => [
+  -(rect.position.y - _viewportH / 2) / (_viewportH / 2),
+  (rect.position.x - _viewportW / 2) / (_viewportW / 2),
+  rect.position.z,
+
+  -(rect.position.y + rect.position.width - _viewportH / 2) / (_viewportH / 2),
+  (rect.position.x - _viewportW / 2) / (_viewportW / 2),
+  rect.position.z,
+
+  -(rect.position.y + rect.position.width - _viewportH / 2) / (_viewportH / 2),
+  (rect.position.x + rect.position.width - _viewportW / 2) / (_viewportW / 2),
+  rect.position.z,
+
+  -(rect.position.y + rect.position.width - _viewportH / 2) / (_viewportH / 2),
+  (rect.position.x + rect.position.width - _viewportW / 2) / (_viewportW / 2),
+  rect.position.z,
+
+  -(rect.position.y - _viewportH / 2) / (_viewportH / 2),
+  (rect.position.x + rect.position.width - _viewportW / 2) / (_viewportW / 2),
+  rect.position.z,
+
+  -(rect.position.y - _viewportH / 2) / (_viewportH / 2),
+  (rect.position.x - _viewportW / 2) / (_viewportW / 2),
+  rect.position.z
+];
 
 const render = (gl, scene) => {
   var vs = gl.createShader(gl.VERTEX_SHADER);
@@ -53,6 +83,11 @@ const render = (gl, scene) => {
   gl.attachShader(program, fs);
   gl.linkProgram(program);
 
+  gl.useProgram(program);
+  program.uColor = gl.getUniformLocation(program, "uColor");
+  program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+  gl.enableVertexAttribArray(program.aVertexPosition);
+
   if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
     console.log(gl.getShaderInfoLog(vs));
 
@@ -62,55 +97,16 @@ const render = (gl, scene) => {
   if (!gl.getProgramParameter(program, gl.LINK_STATUS))
     console.log(gl.getProgramInfoLog(program));
 
-  const vertices = new Float32Array([
-    scene.position.x,
-    scene.position.y,
-
-    scene.position.x,
-    scene.position.y + scene.position.width,
-
-    scene.position.x + scene.position.width,
-    scene.position.y + scene.position.width,
-
-    scene.position.x + scene.position.width,
-    scene.position.y + scene.position.width,
-
-    scene.position.x + scene.position.width,
-    scene.position.y,
-
-    scene.position.x,
-    scene.position.y
-  ]);
-
-  // const aspect = 1;
-
-  // var vertices = new Float32Array([
-  //   -0.5,
-  //   0.5 * aspect,
-  //   0.5,
-  //   0.5 * aspect,
-  //   0.5,
-  //   -0.5 * aspect, // Triangle 1
-  //   -0.5,
-  //   0.5 * aspect,
-  //   0.5,
-  //   -0.5 * aspect,
-  //   -0.5,
-  //   -0.5 * aspect // Triangle 2
-  // ]);
+  const vertices = new Float32Array(rectToVertexArr(scene));
 
   const vbuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
-  gl.useProgram(program);
-
-  program.uColor = gl.getUniformLocation(program, "uColor");
+  // Set color
   gl.uniform4fv(program.uColor, [1.0, 1.0, 0.0, 1.0]);
-
-  program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
-  gl.enableVertexAttribArray(program.aVertexPosition);
-  gl.vertexAttribPointer(program.aVertexPosition, 2, gl.FLOAT, false, 0, 0);
+  // Add fourth vertex value
+  gl.vertexAttribPointer(program.aVertexPosition, 3, gl.FLOAT, false, 0, 0);
 
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 };

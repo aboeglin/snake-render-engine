@@ -18,8 +18,8 @@ describe("render engine", () => {
 
     test("It should be able to render rects", done => {
       const gl = makeGL(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-      const rect = SRE.Rect({ x: 0, y: 0, z: 0, width: 1 });
-      SRE.init(gl);
+      const rect = SRE.Rect({ x: 32, y: 32, z: 0, width: 64 });
+      SRE.init(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
       SRE.render(gl, rect);
 
       makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
@@ -107,6 +107,19 @@ describe("render engine", () => {
       SRE.init(gl);
 
       makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
+        expect(ss).toMatchImageSnapshot();
+        gl.getExtension("STACKGL_destroy_context").destroy();
+        done();
+      });
+    });
+
+    test("It should take a viewport width and height", done => {
+      const gl = makeGL(VIEWPORT_WIDTH * 2, VIEWPORT_HEIGHT * 2);
+      const rect = SRE.Rect({ x: 192, y: 0, z: 0, width: 64 });
+      SRE.init(gl, VIEWPORT_WIDTH * 2, VIEWPORT_HEIGHT * 2);
+      SRE.render(gl, rect);
+
+      makeSnapshot(gl, VIEWPORT_WIDTH * 2, VIEWPORT_HEIGHT * 2).then(ss => {
         expect(ss).toMatchImageSnapshot();
         gl.getExtension("STACKGL_destroy_context").destroy();
         done();
