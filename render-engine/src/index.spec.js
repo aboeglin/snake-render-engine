@@ -1,9 +1,12 @@
+const { curry } = require("ramda");
 const makeGL = require("gl");
 const ndArray = require("ndarray");
 const savePixels = require("save-pixels");
 const { toMatchImageSnapshot } = require("jest-image-snapshot");
+const { replaceRaf } = require("raf-stub");
 
 expect.extend({ toMatchImageSnapshot });
+replaceRaf();
 
 const SRE = require("./index");
 
@@ -18,9 +21,17 @@ describe("render engine", () => {
 
     test("It should be able to render rects", done => {
       const gl = makeGL(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-      const rect = SRE.Rect({ x: 32, y: 32, z: 0, width: 64 });
-      SRE.init(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-      SRE.render(gl, rect);
+      const Scene = props =>
+        SRE.Rect(
+          {
+            x: 32,
+            y: 32,
+            z: 0,
+            width: 64
+          },
+          []
+        );
+      SRE.init(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, Scene);
 
       makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
         expect(ss).toMatchImageSnapshot();
@@ -42,7 +53,7 @@ describe("render engine", () => {
         children: []
       };
 
-      const actual = SRE.Rect({ x: 0, y: 0, z: 0, width: 5 });
+      const actual = SRE.Rect({ x: 0, y: 0, z: 0, width: 5, children: [] });
 
       expect(actual).toEqual(expected);
     });
@@ -60,9 +71,13 @@ describe("render engine", () => {
         ]
       };
 
-      const actual = SRE.Rect({ x: 0, y: 0, z: 0, width: 5 }, [
-        SRE.Rect({ x: 0, y: 0, z: 0, width: 5 })
-      ]);
+      const actual = SRE.Rect({
+        x: 0,
+        y: 0,
+        z: 0,
+        width: 5,
+        children: [SRE.Rect({ x: 0, y: 0, z: 0, width: 5, children: [] })]
+      });
 
       expect(actual).toEqual(expected);
     });
@@ -79,22 +94,17 @@ describe("render engine", () => {
           x: props.x / 2,
           y: props.y / 2,
           z: props.z / 2,
-          width: props.width / 2
+          width: props.width / 2,
+          children: []
         });
 
-      const actual = customElement({ x: 2, y: 2, z: 2, width: 10 });
-
-      expect(actual).toEqual(expected);
-    });
-
-    test("Rect should take a props param that bundles all info about the rect", () => {
-      const expected = {
-        type: "RECTANGLE",
-        position: { x: 2, y: 2, z: 0, width: 5 },
+      const actual = customElement({
+        x: 2,
+        y: 2,
+        z: 2,
+        width: 10,
         children: []
-      };
-
-      const actual = SRE.Rect({ x: 2, y: 2, z: 0, width: 5 });
+      });
 
       expect(actual).toEqual(expected);
     });
@@ -104,7 +114,10 @@ describe("render engine", () => {
     test("init should set a black background", done => {
       const gl = makeGL(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
 
-      SRE.init(gl);
+      const Scene = props =>
+        SRE.Rect({ x: 192, y: 0, z: 0, width: 64, children: [] });
+
+      SRE.init(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, Scene);
 
       makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
         expect(ss).toMatchImageSnapshot();
@@ -115,13 +128,84 @@ describe("render engine", () => {
 
     test("It should take a viewport width and height", done => {
       const gl = makeGL(VIEWPORT_WIDTH * 2, VIEWPORT_HEIGHT * 2);
-      const rect = SRE.Rect({ x: 192, y: 0, z: 0, width: 64 });
-      SRE.init(gl, VIEWPORT_WIDTH * 2, VIEWPORT_HEIGHT * 2);
-      SRE.render(gl, rect);
+
+      const Scene = props =>
+        SRE.Rect({ x: 192, y: 0, z: 0, width: 64, children: [] });
+      SRE.init(gl, VIEWPORT_WIDTH * 2, VIEWPORT_HEIGHT * 2, Scene);
 
       makeSnapshot(gl, VIEWPORT_WIDTH * 2, VIEWPORT_HEIGHT * 2).then(ss => {
         expect(ss).toMatchImageSnapshot();
         gl.getExtension("STACKGL_destroy_context").destroy();
+        done();
+      });
+    });
+  });
+
+  describe("Scene", () => {
+    test("init should take a scene and render a black background", done => {
+      const gl = makeGL(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+
+      const Scene = props => {};
+      SRE.init(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, Scene);
+
+      makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
+        expect(ss).toMatchImageSnapshot();
+        gl.getExtension("STACKGL_destroy_context").destroy();
+        done();
+      });
+    });
+
+    test("It should render what is in the scene", done => {
+      const gl = makeGL(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+
+      const Scene = props =>
+        SRE.Rect(
+          {
+            x: 32,
+            y: 32,
+            z: 0,
+            width: 64
+          },
+          []
+        );
+
+      SRE.init(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, Scene);
+
+      makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
+        expect(ss).toMatchImageSnapshot();
+        gl.getExtension("STACKGL_destroy_context").destroy();
+        done();
+      });
+    });
+
+    test("It should move object when position changes from one render to another", done => {
+      const gl = makeGL(VIEWPORT_WIDTH, VIEWPORT_HEIGHT, {
+        preserveDrawingBuffer: true
+      });
+
+      let calls = -1;
+      const Scene = props => {
+        calls = calls + 1;
+        console.log(calls);
+        return SRE.Rect(
+          {
+            x: 32 + calls * 32,
+            y: 32,
+            z: 0,
+            width: 64
+          },
+          []
+        );
+      };
+
+      SRE.init(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, Scene);
+
+      requestAnimationFrame.step(1, 40);
+
+      makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
+        expect(ss).toMatchImageSnapshot();
+        gl.getExtension("STACKGL_destroy_context").destroy();
+        console.log("done");
         done();
       });
     });

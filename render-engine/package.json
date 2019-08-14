@@ -6,12 +6,13 @@
   "author": "Arnaud Boeglin",
   "license": "MIT",
   "devDependencies": {
+    "gl": "^4.3.3",
     "jest": "^24.8.0",
     "jest-image-snapshot": "^2.9.0",
     "ndarray": "^1.0.18",
-    "gl": "^4.3.3",
     "nps": "^5.9.5",
     "prettier": "^1.18.2",
+    "raf-stub": "^3.0.0",
     "save-pixels": "^2.3.4"
   },
   "dependencies": {
