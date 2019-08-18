@@ -1,16 +1,5 @@
 const { pathOr } = require("ramda");
 
-const Rect = props => ({
-  type: "RECTANGLE",
-  position: {
-    x: props.x,
-    y: props.y,
-    z: props.z,
-    width: props.width
-  },
-  children: props.children
-});
-
 let _viewportW, _viewportH;
 
 const init = (gl, viewportW, viewportH, scene) => {
@@ -37,11 +26,10 @@ const start = (gl, program, scene) => {
   // Handle timer, pass time to scene, etc
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   render(gl, program, scene());
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  render(gl, program, scene());
-  // requestAnimationFrame(() => {
-  //   start(gl, program, scene);
-  // });
+
+  requestAnimationFrame(() => {
+    start(gl, program, scene);
+  });
 };
 
 const createProgram = gl => {
@@ -151,6 +139,5 @@ const render = (gl, program, node) => {
 
 module.exports = {
   init,
-  render,
-  Rect
+  render
 };
