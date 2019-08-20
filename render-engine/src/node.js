@@ -1,3 +1,3 @@
-const Node = fn => props => () => fn(props);
+const Node = fn => props => () => fn(props || {});
 
-module.exports = Node;
+module.exports = { Node };
