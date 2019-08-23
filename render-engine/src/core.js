@@ -2,7 +2,9 @@ const traverse = nodeFn => {
   const node = nodeFn();
 
   if (typeof node === "function") {
-    return traverse(node);
+    return { children: [traverse(node)] };
+  } else if (Array.isArray(node)) {
+    return { children: node.map(traverse) };
   } else if (node === undefined || node === null) {
     return {};
   }

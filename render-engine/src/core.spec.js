@@ -28,6 +28,26 @@ describe("core", () => {
     }));
 
     const expected = {
+      children: [
+        {
+          children: [{ x: 2, y: 3, children: [] }, { x: 5, y: 7, children: [] }]
+        }
+      ]
+    };
+
+    const scene = Scene();
+    const tree = traverse(scene);
+    expect(tree).toEqual(expected);
+  });
+
+  test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
+    const Scene = Node(() => [Rect({ x: 2, y: 3 }), Rect({ x: 5, y: 7 })]);
+    const Rect = Node(props => ({
+      x: props.x,
+      y: props.y
+    }));
+
+    const expected = {
       children: [{ x: 2, y: 3, children: [] }, { x: 5, y: 7, children: [] }]
     };
 
