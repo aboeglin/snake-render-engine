@@ -1,5 +1,5 @@
-const traverse = nodeFn => {
-  const node = nodeFn();
+const traverse = nodeResolver => {
+  const node = nodeResolver();
 
   if (typeof node === "function") {
     return { children: [traverse(node)] };
@@ -15,6 +15,16 @@ const traverse = nodeFn => {
   };
 };
 
+const initWithRenderer = renderer => {
+  const init = nodeElement => {
+    renderer(traverse(nodeElement));
+    requestAnimationFrame(() => init(nodeElement));
+  };
+
+  return init;
+};
+
 module.exports = {
-  traverse
+  traverse,
+  initWithRenderer
 };
