@@ -44,8 +44,8 @@ describe("renderer", () => {
     });
     const rect = {
       type: "RECT",
-      x: 32,
-      y: 32,
+      x: 72,
+      y: 39,
       z: 0,
       width: 80,
       height: 14,
@@ -53,6 +53,36 @@ describe("renderer", () => {
     };
 
     renderer(rect);
+
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
+      expect(ss).toMatchImageSnapshot();
+      done();
+    });
+  });
+
+  test("renderer should render a Rect with rotation", done => {
+    const renderer = initRenderer({
+      gl,
+      width: VIEWPORT_WIDTH,
+      height: VIEWPORT_HEIGHT
+    });
+    const scene = {
+      type: "TRANSFORM",
+      rotation: 30,
+      children: [
+        {
+          type: "RECT",
+          x: 72,
+          y: 39,
+          z: 0,
+          width: 80,
+          height: 14,
+          children: []
+        }
+      ]
+    };
+
+    renderer(scene);
 
     makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
       expect(ss).toMatchImageSnapshot();

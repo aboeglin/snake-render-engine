@@ -1,5 +1,5 @@
-const { curry } = require("ramda");
-const { mat4 } = require("gl-matrix");
+const { curry, propOr } = require("ramda");
+const { mat4, glMatrix } = require("gl-matrix");
 
 const { FRAGMENT_SHADER_COLOR, VERTEX_SHADER } = require("./shaders");
 
@@ -39,23 +39,48 @@ const initRenderer = ({ gl, width, height }) => {
 
   const program = createProgram(gl);
 
-  return renderer({ gl, program, width, height });
+  const projectionMatrix = makeProjectionMatrix(width, height);
+
+  return renderer({ gl, program, matrices: [projectionMatrix] });
 };
 
-const renderer = curry(({ gl, program, width, height }, root) => {
+const renderer = curry(({ gl, program, matrices }, root) => {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  renderRect({ gl, program, width, height }, root);
+  // TODO: clean up that mess
+  if (root.type === "RECT") {
+    const matricesCopy = matrices;
+    matrices = [
+      matrices[0],
+      mat4.fromTranslation([], [root.x, root.y, root.z])
+    ];
+    matricesCopy.slice(1).forEach(x => matrices.push(x));
+    const matrix = matrices.reduce(
+      (final, mat) => mat4.multiply([], final, mat),
+      mat4.create()
+    );
+    renderRect({ gl, program, matrix }, root);
+  } else if (root.type === "TRANSFORM") {
+    matrices.push(
+      mat4.fromRotation([], glMatrix.toRadian(root.rotation), [0, 0, 1])
+    );
+  }
+
+  propOr([], "children", root).forEach(node =>
+    renderer({ gl, program, matrices }, node)
+  );
+
+  // Reset matrices or don't alter the one given to children for reference transparency.
 });
 
 const makeProjectionMatrix = curry((viewportWidth, viewportHeight) => {
   const orthoMat = mat4.ortho([], 0, viewportWidth, 0, viewportHeight, 0, 1000);
   // We need the rotation in order to get the x axis horizontal
-  const rotationMath = mat4.fromRotation([], Math.PI / 2, [0, 0, 1]);
-  return mat4.multiply([], rotationMath, orthoMat);
+  const rotationMat = mat4.fromRotation([], Math.PI / 2, [0, 0, 1]);
+  return mat4.multiply([], rotationMat, orthoMat);
 });
 
-const renderRect = curry(({ gl, program, width, height }, rect) => {
+const renderRect = curry(({ gl, program, matrix }, rect) => {
   const vertices = new Float32Array(rectToVertexArr(rect));
 
   const vbuffer = gl.createBuffer();
@@ -68,10 +93,6 @@ const renderRect = curry(({ gl, program, width, height }, rect) => {
   program.vertexPosition = gl.getAttribLocation(program, "vertexPosition");
   gl.enableVertexAttribArray(program.aVertexPosition);
 
-  const transformationMatrix = mat4.create(); // Identity
-  const projectionMatrix = makeProjectionMatrix(width, height);
-  const matrix = mat4.multiply([], projectionMatrix, transformationMatrix);
-
   // Set color
   gl.uniform4fv(program.uColor, [1.0, 1.0, 0.0, 1.0]);
   // Add fourth vertex value
@@ -83,28 +104,28 @@ const renderRect = curry(({ gl, program, width, height }, rect) => {
 });
 
 const rectToVertexArr = rect => [
-  rect.x,
-  rect.y,
+  -rect.width / 2,
+  -rect.height / 2,
   rect.z,
 
-  rect.x,
-  rect.y + rect.height,
+  -rect.width / 2,
+  rect.height / 2,
   rect.z,
 
-  rect.x + rect.width,
-  rect.y + rect.height,
+  rect.width / 2,
+  rect.height / 2,
   rect.z,
 
-  rect.x + rect.width,
-  rect.y + rect.height,
+  rect.width / 2,
+  rect.height / 2,
   rect.z,
 
-  rect.x + rect.width,
-  rect.y,
+  rect.width / 2,
+  -rect.height / 2,
   rect.z,
 
-  rect.x,
-  rect.y,
+  -rect.width / 2,
+  -rect.height / 2,
   rect.z
 ];
 
