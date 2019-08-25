@@ -1,4 +1,5 @@
 const { curry } = require("ramda");
+const { mat4 } = require("gl-matrix");
 
 const { FRAGMENT_SHADER_COLOR, VERTEX_SHADER } = require("./shaders");
 
@@ -47,8 +48,15 @@ const renderer = curry(({ gl, program, width, height }, root) => {
   renderRect({ gl, program, width, height }, root);
 });
 
+const makeProjectionMatrix = curry((viewportWidth, viewportHeight) => {
+  const orthoMat = mat4.ortho([], 0, viewportWidth, 0, viewportHeight, 0, 1000);
+  // We need the rotation in order to get the x axis horizontal
+  const rotationMath = mat4.fromRotation([], Math.PI / 2, [0, 0, 1]);
+  return mat4.multiply([], rotationMath, orthoMat);
+});
+
 const renderRect = curry(({ gl, program, width, height }, rect) => {
-  const vertices = new Float32Array(rectToVertexArr(width, height, rect));
+  const vertices = new Float32Array(rectToVertexArr(rect));
 
   const vbuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
@@ -56,41 +64,48 @@ const renderRect = curry(({ gl, program, width, height }, rect) => {
 
   gl.useProgram(program);
   program.uColor = gl.getUniformLocation(program, "uColor");
-  program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+  program.matrix = gl.getUniformLocation(program, "matrix");
+  program.vertexPosition = gl.getAttribLocation(program, "vertexPosition");
   gl.enableVertexAttribArray(program.aVertexPosition);
+
+  const transformationMatrix = mat4.create(); // Identity
+  const projectionMatrix = makeProjectionMatrix(width, height);
+  const matrix = mat4.multiply([], projectionMatrix, transformationMatrix);
 
   // Set color
   gl.uniform4fv(program.uColor, [1.0, 1.0, 0.0, 1.0]);
   // Add fourth vertex value
-  gl.vertexAttribPointer(program.aVertexPosition, 3, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(program.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+  // Add fourth vertex value
+  gl.uniformMatrix4fv(program.matrix, false, matrix);
 
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 });
 
-const rectToVertexArr = curry((viewportW, viewportH, rect) => [
-  -(rect.y - viewportH / 2) / (viewportH / 2),
-  (rect.x - viewportW / 2) / (viewportW / 2),
+const rectToVertexArr = rect => [
+  rect.x,
+  rect.y,
   rect.z,
 
-  -(rect.y + rect.height - viewportH / 2) / (viewportH / 2),
-  (rect.x - viewportW / 2) / (viewportW / 2),
+  rect.x,
+  rect.y + rect.height,
   rect.z,
 
-  -(rect.y + rect.height - viewportH / 2) / (viewportH / 2),
-  (rect.x + rect.width - viewportW / 2) / (viewportW / 2),
+  rect.x + rect.width,
+  rect.y + rect.height,
   rect.z,
 
-  -(rect.y + rect.height - viewportH / 2) / (viewportH / 2),
-  (rect.x + rect.width - viewportW / 2) / (viewportW / 2),
+  rect.x + rect.width,
+  rect.y + rect.height,
   rect.z,
 
-  -(rect.y - viewportH / 2) / (viewportH / 2),
-  (rect.x + rect.width - viewportW / 2) / (viewportW / 2),
+  rect.x + rect.width,
+  rect.y,
   rect.z,
 
-  -(rect.y - viewportH / 2) / (viewportH / 2),
-  (rect.x - viewportW / 2) / (viewportW / 2),
+  rect.x,
+  rect.y,
   rect.z
-]);
+];
 
 module.exports = { initRenderer };

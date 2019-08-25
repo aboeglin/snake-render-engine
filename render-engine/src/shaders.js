@@ -11,10 +11,11 @@ void main() {
 `;
 
 const VERTEX_SHADER = `
-attribute vec3 aVertexPosition;
+attribute vec3 vertexPosition;
+uniform mat4 matrix;
 
 void main() {
-  gl_Position = vec4(aVertexPosition, 1.0);
+  gl_Position = (matrix * vec4(vertexPosition, 1));
 }
 `;
 

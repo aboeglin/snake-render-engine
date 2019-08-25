@@ -16,6 +16,7 @@
     "save-pixels": "^2.3.4"
   },
   "dependencies": {
+    "gl-matrix": "^3.1.0",
     "ramda": "^0.26.1"
   }
 }
