@@ -37,6 +37,8 @@ const initRenderer = ({ gl, width, height }) => {
   gl.viewport(0, 0, width, height);
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
   const program = createProgram(gl);
 
   const projectionMatrix = makeProjectionMatrix(width, height);
@@ -45,21 +47,19 @@ const initRenderer = ({ gl, width, height }) => {
 };
 
 const renderer = curry(({ gl, program, matrices }, root) => {
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
   // TODO: clean up that mess
   if (root.type === "RECT") {
-    const matricesCopy = matrices;
-    matrices = [
-      matrices[0],
-      mat4.fromTranslation([], [root.x, root.y, root.z])
-    ];
-    matricesCopy.slice(1).forEach(x => matrices.push(x));
+    matrices.push(mat4.fromTranslation([], [root.x, root.y, root.z]));
+    // const copy = matrices.filter(() => true);
+    const proj = matrices.shift();
+    matrices.reverse().unshift(proj);
+
     const matrix = matrices.reduce(
       (final, mat) => mat4.multiply([], final, mat),
       mat4.create()
     );
     renderRect({ gl, program, matrix }, root);
+    matrices = [matrix];
   } else if (root.type === "TRANSFORM") {
     matrices.push(
       mat4.fromRotation([], glMatrix.toRadian(root.rotation), [0, 0, 1])
@@ -82,6 +82,7 @@ const makeProjectionMatrix = curry((viewportWidth, viewportHeight) => {
 
 const renderRect = curry(({ gl, program, matrix }, rect) => {
   const vertices = new Float32Array(rectToVertexArr(rect));
+  console.log(vertices);
 
   const vbuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);
