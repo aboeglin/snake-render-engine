@@ -1,4 +1,4 @@
-const { curry, propOr } = require("ramda");
+const { curry, propOr, insert, append } = require("ramda");
 const { mat4, glMatrix } = require("gl-matrix");
 
 const { FRAGMENT_SHADER_COLOR, VERTEX_SHADER } = require("./shaders");
@@ -46,31 +46,49 @@ const initRenderer = ({ gl, width, height }) => {
   return renderer({ gl, program, matrices: [projectionMatrix] });
 };
 
-const renderer = curry(({ gl, program, matrices }, root) => {
-  // TODO: clean up that mess
-  if (root.type === "RECT") {
-    matrices.push(mat4.fromTranslation([], [root.x, root.y, root.z]));
-    // const copy = matrices.filter(() => true);
-    const proj = matrices.shift();
-    matrices.reverse().unshift(proj);
+const computeMatrixStack = matrices => [
+  matrices.reduce((final, mat) => mat4.multiply([], final, mat), mat4.create())
+];
 
-    const matrix = matrices.reduce(
-      (final, mat) => mat4.multiply([], final, mat),
-      mat4.create()
+const renderer = curry(({ gl, program, matrices }, root) => {
+  let nextMatrices = matrices;
+
+  if (root.type === "RECT") {
+    nextMatrices = insert(
+      1,
+      mat4.fromTranslation([], [root.x, root.y, root.z]),
+      nextMatrices
     );
-    renderRect({ gl, program, matrix }, root);
-    matrices = [matrix];
+
+    nextMatrices = computeMatrixStack(nextMatrices);
+    renderRect({ gl, program, matrix: nextMatrices[0] }, root);
   } else if (root.type === "TRANSFORM") {
-    matrices.push(
-      mat4.fromRotation([], glMatrix.toRadian(root.rotation), [0, 0, 1])
-    );
+    nextMatrices = handleTransformNode(nextMatrices, root);
   }
 
   propOr([], "children", root).forEach(node =>
-    renderer({ gl, program, matrices }, node)
+    renderer({ gl, program, matrices: nextMatrices }, node)
   );
+});
 
-  // Reset matrices or don't alter the one given to children for reference transparency.
+const handleTransformNode = curry((matrices, node) => {
+  let result = matrices;
+  if (node.translationX || node.translationX) {
+    result = append(
+      mat4.fromTranslation(
+        [],
+        [node.translationX || 0, node.translationY || 0, 0]
+      ),
+      result
+    );
+  }
+  if (node.rotation) {
+    result = append(
+      mat4.fromRotation([], glMatrix.toRadian(node.rotation), [0, 0, 1]),
+      result
+    );
+  }
+  return result;
 });
 
 const makeProjectionMatrix = curry((viewportWidth, viewportHeight) => {
@@ -82,7 +100,6 @@ const makeProjectionMatrix = curry((viewportWidth, viewportHeight) => {
 
 const renderRect = curry(({ gl, program, matrix }, rect) => {
   const vertices = new Float32Array(rectToVertexArr(rect));
-  console.log(vertices);
 
   const vbuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbuffer);

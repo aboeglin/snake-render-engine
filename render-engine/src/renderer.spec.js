@@ -134,4 +134,52 @@ describe("renderer", () => {
       done();
     });
   });
+
+  test("renderer should apply translation to grand children", done => {
+    const renderer = initRenderer({
+      gl,
+      width: VIEWPORT_WIDTH,
+      height: VIEWPORT_HEIGHT
+    });
+    const scene = {
+      type: "TRANSFORM",
+      rotation: 60,
+      translationX: 30,
+      children: [
+        {
+          type: "RECT",
+          x: 72,
+          y: 39,
+          z: 0,
+          width: 80,
+          height: 14,
+          children: [
+            {
+              type: "TRANSFORM",
+              translationX: 10,
+              translationY: 10,
+              rotation: 30,
+              children: [
+                {
+                  type: "RECT",
+                  x: 10,
+                  y: 40,
+                  z: 0,
+                  width: 20,
+                  height: 20
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    renderer(scene);
+
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
+      expect(ss).toMatchImageSnapshot();
+      done();
+    });
+  });
 });
