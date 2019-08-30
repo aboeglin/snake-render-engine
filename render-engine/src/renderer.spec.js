@@ -1,5 +1,7 @@
 const makeGL = require("gl");
 const { toMatchImageSnapshot } = require("jest-image-snapshot");
+const fs = require("fs");
+const PNG = require("pngjs").PNG;
 
 const { initRenderer } = require("./renderer");
 const { makeSnapshot } = require("./test-utils");
@@ -173,6 +175,48 @@ describe("renderer", () => {
           ]
         }
       ]
+    };
+
+    renderer(scene);
+
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
+      expect(ss).toMatchImageSnapshot();
+      done();
+    });
+  });
+
+  test("renderer should render static sprites", done => {
+    const data = fs.readFileSync("./fixtures/sprite.png");
+    const image = PNG.sync.read(data);
+    const pixels = [];
+
+    for (var y = 0; y < image.height; y++) {
+      for (var x = 0; x < image.width; x++) {
+        var idx = (image.width * y + x) << 2;
+
+        pixels[idx] = image.data[idx];
+        pixels[idx + 1] = image.data[idx + 1];
+        pixels[idx + 2] = image.data[idx + 2];
+        pixels[idx + 3] = image.data[idx + 3];
+      }
+    }
+
+    image.data = pixels;
+
+    const renderer = initRenderer({
+      gl,
+      width: VIEWPORT_WIDTH,
+      height: VIEWPORT_HEIGHT
+    });
+    const scene = {
+      type: "SPRITE",
+      texture: image,
+      children: [],
+      x: 40,
+      y: 40,
+      z: 0,
+      width: 40,
+      height: 40
     };
 
     renderer(scene);

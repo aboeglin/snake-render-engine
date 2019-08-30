@@ -3143,7 +3143,7 @@ pngjs-nozlib@^1.0.0:
   resolved "https://registry.yarnpkg.com/pngjs-nozlib/-/pngjs-nozlib-1.0.0.tgz#9e64d602cfe9cce4d9d5997d0687429a73f0b7d7"
   integrity sha1-nmTWAs/pzOTZ1Zl9BodCmnPwt9c=
 
-pngjs@^3.0.0, pngjs@^3.3.3:
+pngjs@^3.0.0, pngjs@^3.3.3, pngjs@^3.4.0:
   version "3.4.0"
   resolved "https://registry.yarnpkg.com/pngjs/-/pngjs-3.4.0.tgz#99ca7d725965fb655814eaf65f38f12bbdbf555f"
   integrity sha512-NCrCHhWmnQklfH4MtJMRjZ2a8c80qXeMlQMv2uVp9ISJMTt562SbGd6n2oq0PaPgKm7Z6pL9E2UlLIhC+SHL3w==

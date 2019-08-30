@@ -11,6 +11,7 @@
     "jest-image-snapshot": "^2.9.0",
     "ndarray": "^1.0.18",
     "nps": "^5.9.5",
+    "pngjs": "^3.4.0",
     "prettier": "^1.18.2",
     "raf-stub": "^3.0.0",
     "save-pixels": "^2.3.4"
