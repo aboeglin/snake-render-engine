@@ -19,7 +19,7 @@ describe("Node", () => {
     expect(actual).toBe(expected);
   });
 
-  test("The resolver function should give an empty object to the constructor if non prop is passed", () => {
+  test("The resolver function should give an empty object to the constructor if no prop is passed", () => {
     const fn = props => props;
     const node = Node(fn);
     const nodeFn = node();
