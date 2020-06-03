@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/aboeglin/snake-render-engine/badge.svg?branch=master)](https://coveralls.io/github/aboeglin/snake-render-engine?branch=master)
+
 # Snake Render Engine
 
 # Concepts
