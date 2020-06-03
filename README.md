@@ -1,3 +1,4 @@
+![Main](https://github.com/aboeglin/snake-render-engine/workflows/Main/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/aboeglin/snake-render-engine/badge.svg?branch=master)](https://coveralls.io/github/aboeglin/snake-render-engine?branch=master)
 
 # Snake Render Engine
