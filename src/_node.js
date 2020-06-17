@@ -40,13 +40,13 @@ const traverse = nodeFn => {
     .fill(" ")
     .join("");
 
-  console.log(
-    `${nodeFn.name}${spaces1}`,
-    `x is: ${node.x}${spaces2}`,
-    `text is: ${node.text}${spaces3}`,
-    `${node.stuffFromStore}`
-  );
-  console.log(node, "\n");
+  // console.log(
+  //   `${nodeFn.name}${spaces1}`,
+  //   `x is: ${node.x}${spaces2}`,
+  //   `text is: ${node.text}${spaces3}`,
+  //   `${node.stuffFromStore}`
+  // );
+  // console.log(node, "\n");
 
   return {
     ...node,
@@ -103,7 +103,8 @@ const N2 = Node((props, state, setState, store) => ({
 }));
 N2.displayName = "N2";
 
-const s = Scene({ x: 99 });
+const s1 = Scene({ x: 99 });
+const s2 = Scene({ x: 200 });
 
 const dispatchClick = (currentTree, event) => {
   // Check depth ?
@@ -116,16 +117,20 @@ const dispatchClick = (currentTree, event) => {
 };
 
 const start = () => {
-  let currentTree = null;
+  let currentTree1 = null;
+  let currentTree2 = null;
 
-  global.onClick(event => dispatchClick(currentTree, event));
+  global.onClick(event => dispatchClick(currentTree1, event));
+  global.onClick(event => dispatchClick(currentTree2, event));
 
   setInterval(() => {
     console.clear();
 
-    currentTree = traverse(s);
-    console.log(currentTree);
-  }, 300);
+    currentTree1 = traverse(s1);
+    currentTree2 = traverse(s2);
+    console.log(currentTree1);
+    console.log(currentTree2);
+  }, 2000);
 };
 
 start();

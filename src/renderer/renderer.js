@@ -120,8 +120,8 @@ const makeProjectionMatrix = curry((viewportWidth, viewportHeight) => {
   const orthoMat = mat4.ortho([], 0, viewportWidth, 0, viewportHeight, 0, 1000);
   // We need the rotation in order to get the x axis horizontal
   const rotationMat = mat4.fromRotation([], Math.PI / 2, [0, 0, 1]);
-  // const rotationMat = mat4.fromRotation([], 0, [0, 0, 1]);
-  return mat4.multiply([], rotationMat, orthoMat);
+  // return mat4.multiply([], rotationMat, orthoMat);
+  return orthoMat;
 });
 
 const renderRect = curry(({ gl, program, matrix }, rect) => {

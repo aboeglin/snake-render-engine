@@ -9,7 +9,7 @@ describe("Rect", () => {
 
   test("The Rect function should build a rect js object", () => {
     const expected = {
-      type: "RECTANGLE",
+      type: "RECT",
       x: 0,
       y: 0,
       z: 0,
@@ -32,7 +32,7 @@ describe("Rect", () => {
 
   test("The Rect function should take children", () => {
     const expected = {
-      type: "RECTANGLE",
+      type: "RECT",
       x: 0,
       y: 0,
       z: 0,
@@ -40,7 +40,7 @@ describe("Rect", () => {
       height: 5,
       children: [
         {
-          type: "RECTANGLE",
+          type: "RECT",
           x: 0,
           y: 0,
           z: 0,
@@ -71,7 +71,7 @@ describe("Rect", () => {
     const expected = {
       children: [
         {
-          type: "RECTANGLE",
+          type: "RECT",
           x: 1,
           y: 1,
           z: 1,
