@@ -1,75 +1,8 @@
 const { curry, propOr, insert, append } = require("ramda");
 const { mat4, glMatrix } = require("gl-matrix");
 
-const {
-  FRAGMENT_SHADER_COLOR,
-  FRAGMENT_SHADER_TEXTURE,
-  VERTEX_SHADER,
-} = require("./shaders");
-
-/**
- * Move this to shaders ? With sanity tests that check that shaders build properly ?
- */
-const createColorProgram = (gl) => {
-  const vs = gl.createShader(gl.VERTEX_SHADER);
-  gl.shaderSource(vs, VERTEX_SHADER);
-  gl.compileShader(vs);
-
-  const fsc = gl.createShader(gl.FRAGMENT_SHADER);
-  gl.shaderSource(fsc, FRAGMENT_SHADER_COLOR);
-  gl.compileShader(fsc);
-
-  program = gl.createProgram();
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fsc);
-  gl.linkProgram(program);
-
-  program.uColor = gl.getUniformLocation(program, "uColor");
-  program.uMatrix = gl.getUniformLocation(program, "uMatrix");
-  program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
-
-  if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
-    console.log(gl.getShaderInfoLog(vs));
-
-  if (!gl.getShaderParameter(fsc, gl.COMPILE_STATUS))
-    console.log(gl.getShaderInfoLog(fsc));
-
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-    console.log(gl.getProgramInfoLog(program));
-
-  return program;
-};
-
-const createTextureProgram = (gl) => {
-  const vs = gl.createShader(gl.VERTEX_SHADER);
-  gl.shaderSource(vs, VERTEX_SHADER);
-  gl.compileShader(vs);
-
-  const fst = gl.createShader(gl.FRAGMENT_SHADER);
-  gl.shaderSource(fst, FRAGMENT_SHADER_TEXTURE);
-  gl.compileShader(fst);
-
-  program = gl.createProgram();
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fst);
-  gl.linkProgram(program);
-
-  program.uMatrix = gl.getUniformLocation(program, "uMatrix");
-  program.uTexture = gl.getUniformLocation(program, "uTexture");
-  program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
-  program.aTextureCoord = gl.getAttribLocation(program, "aTextureCoord");
-
-  if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
-    console.log(gl.getShaderInfoLog(vs));
-
-  if (!gl.getShaderParameter(fst, gl.COMPILE_STATUS))
-    console.log(gl.getShaderInfoLog(fst));
-
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-    console.log(gl.getProgramInfoLog(program));
-
-  return program;
-};
+const { createColorProgram, createTextureProgram } = require("./programs");
+const { makeTextureHandler } = require("./textures");
 
 const initRenderer = ({ gl, width, height }) => {
   if (gl === undefined) {
@@ -85,17 +18,18 @@ const initRenderer = ({ gl, width, height }) => {
     color: createColorProgram(gl),
     texture: createTextureProgram(gl),
   };
-
+  const getTexture = makeTextureHandler(gl);
   const projectionMatrix = makeProjectionMatrix(width, height);
 
-  return renderer({ gl, programs, matrices: [projectionMatrix] });
+  return render({ gl, programs, getTexture, matrices: [projectionMatrix] });
 };
 
 const computeMatrixStack = (matrices) => [
   matrices.reduce((final, mat) => mat4.multiply([], final, mat), mat4.create()),
 ];
 
-const renderer = curry(({ gl, programs, matrices }, root) => {
+// TODO: add transform relative or absolute ( currently it's all absolute )
+const render = curry(({ gl, programs, getTexture, matrices }, root) => {
   let nextMatrices = matrices;
 
   if (root.type === "RECT") {
@@ -116,57 +50,17 @@ const renderer = curry(({ gl, programs, matrices }, root) => {
     );
     nextMatrices = computeMatrixStack(nextMatrices);
     renderSprite(
-      { gl, program: programs.texture, matrix: nextMatrices[0] },
+      { gl, program: programs.texture, matrix: nextMatrices[0], getTexture },
       root
     );
   }
 
   propOr([], "children", root).forEach((node) =>
-    renderer({ gl, programs, matrices: nextMatrices }, node)
+    render({ gl, programs, getTexture, matrices: nextMatrices }, node)
   );
 });
 
-const textures = new WeakMap();
-
-const renderSprite = ({ gl, program, matrix }, root) => {
-  /**
-   * Keep a cache of textures and only create it and use texImage2D when it's not cached.
-   * Otherwise read from cache. All this logic should be in a separate function ( getTexture ? ).
-   * The key of the cache could be the path to the asset.
-   * And then further down we could just bind the texture retrieded from cache or created.
-   */
-
-  // Get the block in the if out in a function / module that handles closuring to access textures and remove global.
-  if (!textures.get(root.texture.data)) {
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-    const level = 0;
-    const internalFormat = gl.RGBA;
-    const border = 0;
-    const srcFormat = gl.RGBA;
-    const srcType = gl.UNSIGNED_BYTE;
-    const pixels = new Uint8Array(root.texture.data);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      level,
-      internalFormat,
-      root.texture.width,
-      root.texture.height,
-      border,
-      srcFormat,
-      srcType,
-      pixels
-    );
-
-    textures.set(root.texture.data, texture);
-  }
-
+const renderSprite = ({ gl, program, getTexture, matrix }, root) => {
   gl.useProgram(program);
 
   const textCoords = new Float32Array(getTextCoords());
@@ -197,7 +91,7 @@ const renderSprite = ({ gl, program, matrix }, root) => {
   gl.uniformMatrix4fv(program.uMatrix, false, matrix);
 
   // Bind the texture to texture unit 0
-  gl.bindTexture(gl.TEXTURE_2D, textures.get(root.texture.data));
+  gl.bindTexture(gl.TEXTURE_2D, getTexture(root.texture));
   gl.uniform1i(program.uTexture, 0);
 
   gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -252,6 +146,7 @@ const renderRect = curry(({ gl, program, matrix }, rect) => {
 });
 
 const rectToVertexArr = (rect) => [
+  // Triangle 1
   -rect.width / 2,
   -rect.height / 2,
   rect.z,
@@ -264,6 +159,7 @@ const rectToVertexArr = (rect) => [
   rect.height / 2,
   rect.z,
 
+  // Triangle 2
   rect.width / 2,
   rect.height / 2,
   rect.z,
@@ -281,6 +177,7 @@ const rectToVertexArr = (rect) => [
  * Will need to be adapted depending on offset and countX, countY
  */
 const getTextCoords = () => [
+  // Triangle 1
   0.0,
   0.0,
 
@@ -290,6 +187,7 @@ const getTextCoords = () => [
   1.0,
   1.0,
 
+  // Triangle 2
   1.0,
   1.0,
 

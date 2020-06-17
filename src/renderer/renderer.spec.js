@@ -4,7 +4,7 @@ const fs = require("fs");
 const PNG = require("pngjs").PNG;
 
 const { initRenderer } = require("./renderer");
-const { makeSnapshot } = require("./test-utils");
+const { makeSnapshot } = require("../test-utils");
 
 expect.extend({ toMatchImageSnapshot });
 
@@ -76,7 +76,7 @@ describe("renderer", () => {
   });
 
   test("renderer should render a Rect", (done) => {
-    const renderer = initRenderer({
+    const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
       height: VIEWPORT_HEIGHT,
@@ -91,7 +91,7 @@ describe("renderer", () => {
       children: [],
     };
 
-    renderer(rect);
+    render(rect);
 
     makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
       expect(ss).toMatchImageSnapshot({
@@ -103,7 +103,7 @@ describe("renderer", () => {
   });
 
   test("renderer should render a Rect with rotation", (done) => {
-    const renderer = initRenderer({
+    const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
       height: VIEWPORT_HEIGHT,
@@ -124,7 +124,7 @@ describe("renderer", () => {
       ],
     };
 
-    renderer(scene);
+    render(scene);
 
     makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
       expect(ss).toMatchImageSnapshot({
@@ -136,7 +136,7 @@ describe("renderer", () => {
   });
 
   test("renderer should apply rotation to grand children", (done) => {
-    const renderer = initRenderer({
+    const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
       height: VIEWPORT_HEIGHT,
@@ -172,7 +172,7 @@ describe("renderer", () => {
       ],
     };
 
-    renderer(scene);
+    render(scene);
 
     makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
       expect(ss).toMatchImageSnapshot({
@@ -184,7 +184,7 @@ describe("renderer", () => {
   });
 
   test("renderer should apply translation to grand children", (done) => {
-    const renderer = initRenderer({
+    const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
       height: VIEWPORT_HEIGHT,
@@ -223,7 +223,7 @@ describe("renderer", () => {
       ],
     };
 
-    renderer(scene);
+    render(scene);
 
     makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
       expect(ss).toMatchImageSnapshot({
@@ -237,7 +237,7 @@ describe("renderer", () => {
   test("renderer should render static sprites", (done) => {
     const image = loadImage("./fixtures/sprite.png");
 
-    const renderer = initRenderer({
+    const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
       height: VIEWPORT_HEIGHT,
@@ -253,7 +253,7 @@ describe("renderer", () => {
       height: 40,
     };
 
-    renderer(scene);
+    render(scene);
 
     makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
       expect(ss).toMatchImageSnapshot();
@@ -264,7 +264,7 @@ describe("renderer", () => {
   test("sprites should share textures when based on the same data", () => {
     const image = loadImage("./fixtures/sprite.png");
 
-    const renderer = initRenderer({
+    const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
       height: VIEWPORT_HEIGHT,
@@ -296,7 +296,7 @@ describe("renderer", () => {
 
     const expected = gl.getTextureCount() + 1;
 
-    renderer(scene);
+    render(scene);
 
     const actual = gl.getTextureCount();
 
