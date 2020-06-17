@@ -13,9 +13,46 @@ const VIEWPORT_HEIGHT = 128;
 
 let gl = null;
 
+const loadImage = (path) => {
+  const data = fs.readFileSync(path);
+  const image = PNG.sync.read(data);
+  const pixels = [];
+
+  for (var y = 0; y < image.height; y++) {
+    for (var x = 0; x < image.width; x++) {
+      var idx = (image.width * y + x) << 2;
+
+      pixels[idx] = image.data[idx];
+      pixels[idx + 1] = image.data[idx + 1];
+      pixels[idx + 2] = image.data[idx + 2];
+      pixels[idx + 3] = image.data[idx + 3];
+    }
+  }
+
+  image.data = pixels;
+
+  return image;
+};
+
+const enhanceGL = (gl) => {
+  if (gl.__PATCHED__) return gl;
+  gl.__PATCHED__ = true;
+
+  let textureCount = 0;
+  const createTexture = gl.createTexture;
+
+  gl.createTexture = () => {
+    textureCount = textureCount + 1;
+    return createTexture();
+  };
+
+  gl.getTextureCount = () => textureCount;
+  return gl;
+};
+
 describe("renderer", () => {
   beforeAll(() => {
-    gl = makeGL(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+    gl = enhanceGL(enhanceGL(makeGL(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)));
   });
 
   afterAll(() => {
@@ -38,11 +75,11 @@ describe("renderer", () => {
     expect(() => initRenderer()).toThrow();
   });
 
-  test("renderer should render a Rect", done => {
+  test("renderer should render a Rect", (done) => {
     const renderer = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
-      height: VIEWPORT_HEIGHT
+      height: VIEWPORT_HEIGHT,
     });
     const rect = {
       type: "RECT",
@@ -51,22 +88,25 @@ describe("renderer", () => {
       z: 0,
       width: 80,
       height: 14,
-      children: []
+      children: [],
     };
 
     renderer(rect);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
-      expect(ss).toMatchImageSnapshot();
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
+      expect(ss).toMatchImageSnapshot({
+        failureThreshold: 0.002,
+        failureThresholdType: "percent",
+      });
       done();
     });
   });
 
-  test("renderer should render a Rect with rotation", done => {
+  test("renderer should render a Rect with rotation", (done) => {
     const renderer = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
-      height: VIEWPORT_HEIGHT
+      height: VIEWPORT_HEIGHT,
     });
     const scene = {
       type: "TRANSFORM",
@@ -79,24 +119,27 @@ describe("renderer", () => {
           z: 0,
           width: 80,
           height: 14,
-          children: []
-        }
-      ]
+          children: [],
+        },
+      ],
     };
 
     renderer(scene);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
-      expect(ss).toMatchImageSnapshot();
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
+      expect(ss).toMatchImageSnapshot({
+        failureThreshold: 0.002,
+        failureThresholdType: "percent",
+      });
       done();
     });
   });
 
-  test("renderer should apply rotation to grand children", done => {
+  test("renderer should apply rotation to grand children", (done) => {
     const renderer = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
-      height: VIEWPORT_HEIGHT
+      height: VIEWPORT_HEIGHT,
     });
     const scene = {
       type: "TRANSFORM",
@@ -120,28 +163,31 @@ describe("renderer", () => {
                   y: 40,
                   z: 0,
                   width: 20,
-                  height: 20
-                }
-              ]
-            }
-          ]
-        }
-      ]
+                  height: 20,
+                },
+              ],
+            },
+          ],
+        },
+      ],
     };
 
     renderer(scene);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
-      expect(ss).toMatchImageSnapshot();
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
+      expect(ss).toMatchImageSnapshot({
+        failureThreshold: 0.002,
+        failureThresholdType: "percent",
+      });
       done();
     });
   });
 
-  test("renderer should apply translation to grand children", done => {
+  test("renderer should apply translation to grand children", (done) => {
     const renderer = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
-      height: VIEWPORT_HEIGHT
+      height: VIEWPORT_HEIGHT,
     });
     const scene = {
       type: "TRANSFORM",
@@ -168,45 +214,33 @@ describe("renderer", () => {
                   y: 40,
                   z: 0,
                   width: 20,
-                  height: 20
-                }
-              ]
-            }
-          ]
-        }
-      ]
+                  height: 20,
+                },
+              ],
+            },
+          ],
+        },
+      ],
     };
 
     renderer(scene);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
-      expect(ss).toMatchImageSnapshot();
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
+      expect(ss).toMatchImageSnapshot({
+        failureThreshold: 0.002,
+        failureThresholdType: "percent",
+      });
       done();
     });
   });
 
-  test("renderer should render static sprites", done => {
-    const data = fs.readFileSync("./fixtures/sprite.png");
-    const image = PNG.sync.read(data);
-    const pixels = [];
-
-    for (var y = 0; y < image.height; y++) {
-      for (var x = 0; x < image.width; x++) {
-        var idx = (image.width * y + x) << 2;
-
-        pixels[idx] = image.data[idx];
-        pixels[idx + 1] = image.data[idx + 1];
-        pixels[idx + 2] = image.data[idx + 2];
-        pixels[idx + 3] = image.data[idx + 3];
-      }
-    }
-
-    image.data = pixels;
+  test("renderer should render static sprites", (done) => {
+    const image = loadImage("./fixtures/sprite.png");
 
     const renderer = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
-      height: VIEWPORT_HEIGHT
+      height: VIEWPORT_HEIGHT,
     });
     const scene = {
       type: "SPRITE",
@@ -216,14 +250,56 @@ describe("renderer", () => {
       y: 40,
       z: 0,
       width: 40,
-      height: 40
+      height: 40,
     };
 
     renderer(scene);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
       expect(ss).toMatchImageSnapshot();
       done();
     });
+  });
+
+  test("sprites should share textures when based on the same data", () => {
+    const image = loadImage("./fixtures/sprite.png");
+
+    const renderer = initRenderer({
+      gl,
+      width: VIEWPORT_WIDTH,
+      height: VIEWPORT_HEIGHT,
+    });
+    const scene = {
+      children: [
+        {
+          type: "SPRITE",
+          texture: image,
+          children: [],
+          x: 40,
+          y: 40,
+          z: 0,
+          width: 40,
+          height: 40,
+        },
+        {
+          type: "SPRITE",
+          texture: image,
+          children: [],
+          x: 40,
+          y: 40,
+          z: 0,
+          width: 40,
+          height: 40,
+        },
+      ],
+    };
+
+    const expected = gl.getTextureCount() + 1;
+
+    renderer(scene);
+
+    const actual = gl.getTextureCount();
+
+    expect(actual).toEqual(expected);
   });
 });

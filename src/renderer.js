@@ -4,13 +4,13 @@ const { mat4, glMatrix } = require("gl-matrix");
 const {
   FRAGMENT_SHADER_COLOR,
   FRAGMENT_SHADER_TEXTURE,
-  VERTEX_SHADER
+  VERTEX_SHADER,
 } = require("./shaders");
 
 /**
  * Move this to shaders ? With sanity tests that check that shaders build properly ?
  */
-const createColorProgram = gl => {
+const createColorProgram = (gl) => {
   const vs = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vs, VERTEX_SHADER);
   gl.compileShader(vs);
@@ -24,6 +24,10 @@ const createColorProgram = gl => {
   gl.attachShader(program, fsc);
   gl.linkProgram(program);
 
+  program.uColor = gl.getUniformLocation(program, "uColor");
+  program.uMatrix = gl.getUniformLocation(program, "uMatrix");
+  program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+
   if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
     console.log(gl.getShaderInfoLog(vs));
 
@@ -36,7 +40,7 @@ const createColorProgram = gl => {
   return program;
 };
 
-const createTextureProgram = gl => {
+const createTextureProgram = (gl) => {
   const vs = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vs, VERTEX_SHADER);
   gl.compileShader(vs);
@@ -49,6 +53,11 @@ const createTextureProgram = gl => {
   gl.attachShader(program, vs);
   gl.attachShader(program, fst);
   gl.linkProgram(program);
+
+  program.uMatrix = gl.getUniformLocation(program, "uMatrix");
+  program.uTexture = gl.getUniformLocation(program, "uTexture");
+  program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+  program.aTextureCoord = gl.getAttribLocation(program, "aTextureCoord");
 
   if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
     console.log(gl.getShaderInfoLog(vs));
@@ -74,7 +83,7 @@ const initRenderer = ({ gl, width, height }) => {
 
   const programs = {
     color: createColorProgram(gl),
-    texture: createTextureProgram(gl)
+    texture: createTextureProgram(gl),
   };
 
   const projectionMatrix = makeProjectionMatrix(width, height);
@@ -82,8 +91,8 @@ const initRenderer = ({ gl, width, height }) => {
   return renderer({ gl, programs, matrices: [projectionMatrix] });
 };
 
-const computeMatrixStack = matrices => [
-  matrices.reduce((final, mat) => mat4.multiply([], final, mat), mat4.create())
+const computeMatrixStack = (matrices) => [
+  matrices.reduce((final, mat) => mat4.multiply([], final, mat), mat4.create()),
 ];
 
 const renderer = curry(({ gl, programs, matrices }, root) => {
@@ -112,10 +121,12 @@ const renderer = curry(({ gl, programs, matrices }, root) => {
     );
   }
 
-  propOr([], "children", root).forEach(node =>
+  propOr([], "children", root).forEach((node) =>
     renderer({ gl, programs, matrices: nextMatrices }, node)
   );
 });
+
+const textures = new WeakMap();
 
 const renderSprite = ({ gl, program, matrix }, root) => {
   /**
@@ -125,38 +136,38 @@ const renderSprite = ({ gl, program, matrix }, root) => {
    * And then further down we could just bind the texture retrieded from cache or created.
    */
 
-  const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
+  // Get the block in the if out in a function / module that handles closuring to access textures and remove global.
+  if (!textures.get(root.texture.data)) {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
 
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-  const level = 0;
-  const internalFormat = gl.RGBA;
-  const border = 0;
-  const srcFormat = gl.RGBA;
-  const srcType = gl.UNSIGNED_BYTE;
-  const pixels = new Uint8Array(root.texture.data);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    level,
-    internalFormat,
-    root.texture.width,
-    root.texture.height,
-    border,
-    srcFormat,
-    srcType,
-    pixels
-  );
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const border = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixels = new Uint8Array(root.texture.data);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      level,
+      internalFormat,
+      root.texture.width,
+      root.texture.height,
+      border,
+      srcFormat,
+      srcType,
+      pixels
+    );
+
+    textures.set(root.texture.data, texture);
+  }
 
   gl.useProgram(program);
-  // move these 3 lines to createXProgram ?
-  program.uMatrix = gl.getUniformLocation(program, "uMatrix");
-  program.uTexture = gl.getUniformLocation(program, "uTexture");
-  program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
-  program.aTextureCoord = gl.getAttribLocation(program, "aTextureCoord");
 
   const textCoords = new Float32Array(getTextCoords());
   const tbuffer = gl.createBuffer();
@@ -167,7 +178,7 @@ const renderSprite = ({ gl, program, matrix }, root) => {
     rectToVertexArr({
       width: 40,
       height: 40,
-      z: 0
+      z: 0,
     })
   );
 
@@ -185,8 +196,8 @@ const renderSprite = ({ gl, program, matrix }, root) => {
 
   gl.uniformMatrix4fv(program.uMatrix, false, matrix);
 
-  // // Bind the texture to texture unit 0
-  gl.bindTexture(gl.TEXTURE_2D, texture);
+  // Bind the texture to texture unit 0
+  gl.bindTexture(gl.TEXTURE_2D, textures.get(root.texture.data));
   gl.uniform1i(program.uTexture, 0);
 
   gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -227,9 +238,7 @@ const renderRect = curry(({ gl, program, matrix }, rect) => {
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
   gl.useProgram(program);
-  program.uColor = gl.getUniformLocation(program, "uColor");
-  program.uMatrix = gl.getUniformLocation(program, "uMatrix");
-  program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+
   gl.enableVertexAttribArray(program.aVertexPosition);
 
   // Set color
@@ -242,7 +251,7 @@ const renderRect = curry(({ gl, program, matrix }, rect) => {
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 });
 
-const rectToVertexArr = rect => [
+const rectToVertexArr = (rect) => [
   -rect.width / 2,
   -rect.height / 2,
   rect.z,
@@ -265,7 +274,7 @@ const rectToVertexArr = rect => [
 
   -rect.width / 2,
   -rect.height / 2,
-  rect.z
+  rect.z,
 ];
 
 /**
@@ -288,7 +297,7 @@ const getTextCoords = () => [
   0.0,
 
   0.0,
-  0.0
+  0.0,
 ];
 
 module.exports = { initRenderer };
