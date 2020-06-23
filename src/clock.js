@@ -1,5 +1,6 @@
 const NOT_STARTED = -1;
 
+// TODO: Add pause, stop, getDeltaT
 const createClock = getTime => {
   let t0 = NOT_STARTED;
 

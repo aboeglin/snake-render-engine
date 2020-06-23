@@ -22,6 +22,7 @@ const createColorProgram = (gl) => {
   program.uMatrix = gl.getUniformLocation(program, "uMatrix");
   program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
 
+  // TODO: Add proper error handling
   if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
     console.log(gl.getShaderInfoLog(vs));
 
@@ -53,6 +54,7 @@ const createTextureProgram = (gl) => {
   program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
   program.aTextureCoord = gl.getAttribLocation(program, "aTextureCoord");
 
+  // TODO: Add proper error handling
   if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
     console.log(gl.getShaderInfoLog(vs));
 

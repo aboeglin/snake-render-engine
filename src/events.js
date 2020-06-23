@@ -1,7 +1,10 @@
 const { curry, forEach } = require("ramda");
 
-// Should have a mechanism either to traverse the tree and root should be the non traversed tree, or acess the
-// latest version of the traversed tree.
+// Add main event types and not only clicks:
+// - mousemove
+// - keydown
+// - keyup
+// ...
 const handleEvent = curry((event, root) => {
   const minX = root.x;
   const maxX = root.x + root.width;

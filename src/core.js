@@ -1,6 +1,6 @@
 const { curry } = require("ramda");
 const { createClock } = require("./clock");
-const { handleEvent } = require("./renderer/events");
+const { handleEvent } = require("./events");
 
 const traverse = curry((config, nodeResolver) => {
   const node = nodeResolver({ time: config.clock.getCurrentTime() });
@@ -25,6 +25,7 @@ const defaultConfig = {
 
 // Find a way to hook event handler here ?
 const initWithRenderer = (container, render, config = defaultConfig) => {
+  // We need to closure the vdom, so that event handlers act on what is currently rendered
   let vdom = null;
 
   const wireEvent = (event) => {
