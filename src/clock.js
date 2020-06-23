@@ -1,6 +1,6 @@
 const NOT_STARTED = -1;
 
-const create = getTime => {
+const createClock = getTime => {
   let t0 = NOT_STARTED;
 
   return {
@@ -14,5 +14,5 @@ const create = getTime => {
 };
 
 module.exports = {
-  create
+  createClock
 };

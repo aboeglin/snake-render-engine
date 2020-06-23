@@ -1,6 +1,13 @@
 const Rect = require("./Rect");
 const { Node } = require("../node");
 const { traverse } = require("../core");
+const { createClock } = require("../clock");
+
+const getTime = () => 500;
+const clock = createClock(getTime);
+const config = { clock };
+
+const configuredTraverse = traverse(config);
 
 describe("Rect", () => {
   test("It should have a Rect function", () => {
@@ -18,14 +25,14 @@ describe("Rect", () => {
       children: [],
     };
 
-    const actual = Rect({
+    const actual = configuredTraverse(Rect({
       x: 0,
       y: 0,
       z: 0,
       width: 5,
       height: 5,
       children: [],
-    })();
+    }));
 
     expect(actual).toEqual(expected);
   });
@@ -51,7 +58,7 @@ describe("Rect", () => {
       ],
     };
 
-    const actual = traverse(
+    const actual = configuredTraverse(
       Rect({
         x: 0,
         y: 0,
@@ -93,7 +100,7 @@ describe("Rect", () => {
       })
     );
 
-    const actual = traverse(
+    const actual = configuredTraverse(
       CustomNode({
         x: 2,
         y: 2,

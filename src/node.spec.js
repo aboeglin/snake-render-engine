@@ -1,5 +1,7 @@
 const { Node } = require("./node");
 
+const time = 1;
+
 describe("Node", () => {
   test("It should have a Node function", () => {
     expect(typeof Node).toBe("function");
@@ -14,7 +16,7 @@ describe("Node", () => {
     const fn = () => expected;
     const node = Node(fn);
     const nodeFn = node();
-    const actual = nodeFn();
+    const actual = nodeFn({ time });
 
     expect(actual).toBe(expected);
   });
@@ -23,7 +25,7 @@ describe("Node", () => {
     const fn = props => props;
     const node = Node(fn);
     const nodeFn = node();
-    const actual = nodeFn();
+    const actual = nodeFn({ time });
 
     expect(actual).toEqual({});
   });
@@ -33,7 +35,7 @@ describe("Node", () => {
     const fn = props => props;
     const node = Node(fn);
     const nodeFn = node(expected);
-    const actual = nodeFn();
+    const actual = nodeFn({ time });
 
     expect(actual).toBe(expected);
   });

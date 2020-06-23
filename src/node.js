@@ -1,3 +1,3 @@
-const Node = fn => props => () => fn(props || {});
+const Node = (fn) => (props) => ({ time }) => fn(props || {}, time);
 
 module.exports = { Node };

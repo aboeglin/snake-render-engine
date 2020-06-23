@@ -1,23 +1,23 @@
-const Clock = require("./clock");
+const { createClock } = require("./clock");
 
 describe("Clock", () => {
   test("It should export a create function", () => {
-    expect(typeof Clock.create).toBe("function");
+    expect(typeof createClock).toBe("function");
   });
 
   test("The create function should return an object with a start function", () => {
-    const clock = Clock.create();
+    const clock = createClock();
     expect(typeof clock.start).toBe("function");
   });
 
   test("The create function should return an object with a getCurrentTime function", () => {
-    const clock = Clock.create();
+    const clock = createClock();
     expect(typeof clock.getCurrentTime).toBe("function");
   });
 
   test("The create function should accept and use a getTime function", () => {
     const getTime = jest.fn();
-    const clock = Clock.create(getTime);
+    const clock = createClock(getTime);
     clock.start();
     expect(getTime).toHaveBeenCalled();
   });
@@ -32,7 +32,7 @@ describe("Clock", () => {
       return i === 0 ? 0 : expected;
     };
 
-    const clock = Clock.create(getTime);
+    const clock = createClock(getTime);
     clock.start();
     const actual = clock.getCurrentTime();
     expect(actual).toBe(expected);

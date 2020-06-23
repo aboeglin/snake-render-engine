@@ -30,15 +30,15 @@ const traverse = nodeFn => {
   const children =
     node.children && node.children.length ? node.children : false;
 
-  const spaces1 = Array(10 - nodeFn.name.length)
-    .fill(" ")
-    .join("");
-  const spaces2 = Array(10 - node.x.toString().length)
-    .fill(" ")
-    .join("");
-  const spaces3 = Array(20 - node.text.length)
-    .fill(" ")
-    .join("");
+  // const spaces1 = Array(10 - nodeFn.name.length)
+  //   .fill(" ")
+  //   .join("");
+  // const spaces2 = Array(10 - node.x.toString().length)
+  //   .fill(" ")
+  //   .join("");
+  // const spaces3 = Array(20 - node.text.length)
+  //   .fill(" ")
+  //   .join("");
 
   // console.log(
   //   `${nodeFn.name}${spaces1}`,
@@ -55,10 +55,10 @@ const traverse = nodeFn => {
 };
 
 const Node = fn => {
-  let state = null;
-  const setState = newState => (state = newState);
-
   const constructor = (props, initialState) => {
+    let state = null;
+    const setState = newState => (state = newState);
+
     const resolver = () => fn(props, state || initialState, setState, store);
     const name = constructor.displayName ? constructor.displayName : "Node";
     Object.defineProperty(resolver, "name", { value: name });
@@ -75,7 +75,7 @@ const Scene = Node((props, state = initialSceneState, setState) => {
     x: props.x,
     text: state.text,
     children: [
-      N1({ onStuffChanged: x => setState({ text: x }) }),
+      N1({ onStuffChanged: x => setState({ text: x+Math.random() }) }),
       N2({ x: 17, text: state.text })
     ]
   };
@@ -128,8 +128,8 @@ const start = () => {
 
     currentTree1 = traverse(s1);
     currentTree2 = traverse(s2);
-    console.log(currentTree1);
-    console.log(currentTree2);
+    console.log(currentTree1.text);
+    console.log(currentTree2.text);
   }, 2000);
 };
 
