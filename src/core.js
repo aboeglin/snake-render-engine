@@ -1,5 +1,6 @@
 const { curry } = require("ramda");
 const { createClock } = require("./clock");
+const { handleEvent } = require("./renderer/events");
 
 const traverse = curry((config, nodeResolver) => {
   const node = nodeResolver({ time: config.clock.getCurrentTime() });
@@ -23,11 +24,20 @@ const defaultConfig = {
 };
 
 // Find a way to hook event handler here ?
-const initWithRenderer = (render, config = defaultConfig) => {
+const initWithRenderer = (container, render, config = defaultConfig) => {
+  let vdom = null;
+
+  const wireEvent = (event) => {
+    handleEvent(event, vdom);
+  };
+
   const start = (nodeElement) => {
-    render(traverse(config, nodeElement));
+    vdom = traverse(config, nodeElement);
+    render(vdom);
     requestAnimationFrame(() => start(nodeElement));
   };
+
+  container.addEventListener("click", wireEvent);
 
   return start;
 };

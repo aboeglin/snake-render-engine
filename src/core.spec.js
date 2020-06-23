@@ -89,7 +89,11 @@ describe("core", () => {
       done();
     };
 
-    const start = initWithRenderer(renderer, { clock });
+    const container = {
+      addEventListener: jest.fn(),
+    };
+
+    const start = initWithRenderer(container, renderer, { clock });
     start(Scene());
   });
 
@@ -106,7 +110,11 @@ describe("core", () => {
     };
     const renderer = jest.fn();
 
-    const start = initWithRenderer(renderer, { clock });
+    const container = {
+      addEventListener: jest.fn(),
+    };
+
+    const start = initWithRenderer(container, renderer, { clock });
     start(Scene());
 
     requestAnimationFrame.step();
@@ -123,9 +131,53 @@ describe("core", () => {
 
     const render = jest.fn();
 
-    const start = initWithRenderer(render, { clock });
+    const container = {
+      addEventListener: jest.fn(),
+    };
+
+    const start = initWithRenderer(container, render, { clock });
     start(ANode());
 
     expect(render).toHaveBeenCalledWith(expected);
+  });
+
+  test("initWithRenderer should register event handlers", () => {
+    const container = {
+      addEventListener: jest.fn(),
+    };
+
+    const render = () => {};
+
+    initWithRenderer(container, render, { clock });
+
+    expect(container.addEventListener).toHaveBeenCalledWith("click", expect.any(Function));
+  });
+
+  test("initWithRenderer should wire event handlers after start", () => {
+    let click = null;
+    const expected = jest.fn();
+
+    const ANode = Node((props, time) => ({
+      onClick: expected,
+      x: 5,
+      y: 5,
+      width: 10,
+      height: 10,
+    }));
+
+    const container = {
+      addEventListener: (type, handler) => {
+        click = handler;
+      },
+    };
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render, { clock });
+    start(ANode());
+
+    click({ x: 10, y: 10 });
+
+    expect(expected).toHaveBeenCalled();
   });
 });
