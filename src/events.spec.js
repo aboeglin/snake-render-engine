@@ -1,4 +1,4 @@
-const { handleEvent } = require("./events");
+const { handleEvent, fromDOMEvent } = require("./events");
 
 describe("events", () => {
   test("handleEvent should call the click handler of a Rect when clicked in", () => {
@@ -40,8 +40,8 @@ describe("events", () => {
 
     const event = {
       type: "click",
-      x: 160,
-      y: 0,
+      x: 110,
+      y: 100,
     };
 
     handleEvent(event, root);
@@ -64,8 +64,8 @@ describe("events", () => {
 
     const event = {
       type: "click",
-      x: 140,
-      y: 0,
+      x: 90,
+      y: 110,
     };
 
     handleEvent(event, root);
@@ -88,8 +88,8 @@ describe("events", () => {
 
     const event = {
       type: "click",
-      x: 140,
-      y: 140,
+      x: 90,
+      y: 90,
     };
 
     handleEvent(event, root);
@@ -116,12 +116,33 @@ describe("events", () => {
 
     const event = {
       type: "click",
-      x: 140,
-      y: 140,
+      x: 90,
+      y: 90,
     };
 
     handleEvent(event, root);
 
     expect(clickHandler).toHaveBeenCalledWith(event);
+  });
+
+  test("fromDOMEvent should build an event object with projected coordinates", () => {
+    const domEvent = {
+      type: "click",
+      offsetX: 200,
+      offsetY: 200,
+    };
+
+    const container = {
+      clientHeight: 300,
+    };
+
+    const actual = fromDOMEvent(container, domEvent);
+    const expected = {
+      type: "click",
+      x: 200,
+      y: 100,
+    };
+
+    expect(actual).toEqual(expected);
   });
 });

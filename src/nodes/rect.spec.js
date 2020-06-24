@@ -1,4 +1,4 @@
-const Rect = require("./Rect");
+const Rect = require("./rect");
 const { Node } = require("../node");
 const { traverse } = require("../core");
 const { createClock } = require("../clock");

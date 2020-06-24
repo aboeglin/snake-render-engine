@@ -1,6 +1,6 @@
-const { curry } = require("ramda");
+const { __, curry, pipe } = require("ramda");
 const { createClock } = require("./clock");
-const { handleEvent } = require("./events");
+const { handleEvent, fromDOMEvent } = require("./events");
 
 const traverse = curry((config, nodeResolver) => {
   const node = nodeResolver({ time: config.clock.getCurrentTime() });
@@ -28,9 +28,10 @@ const initWithRenderer = (container, render, config = defaultConfig) => {
   // We need to closure the vdom, so that event handlers act on what is currently rendered
   let vdom = null;
 
-  const wireEvent = (event) => {
-    handleEvent(event, vdom);
-  };
+  const wireEvent = pipe(
+    fromDOMEvent(container),
+    event => handleEvent(event, vdom)
+  );
 
   const start = (nodeElement) => {
     vdom = traverse(config, nodeElement);

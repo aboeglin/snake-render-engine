@@ -166,6 +166,7 @@ describe("core", () => {
     }));
 
     const container = {
+      clientHeight: 100,
       addEventListener: (type, handler) => {
         click = handler;
       },
@@ -176,7 +177,7 @@ describe("core", () => {
     const start = initWithRenderer(container, render, { clock });
     start(ANode());
 
-    click({ x: 10, y: 10 });
+    click({ offsetX: 10, offsetY: 90, type: "click" });
 
     expect(expected).toHaveBeenCalled();
   });
