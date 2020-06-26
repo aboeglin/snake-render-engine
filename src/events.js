@@ -6,7 +6,6 @@ const { curry, forEach } = require("ramda");
 // - keyup
 // ...
 const handleEvent = curry((event, root) => {
-  console.log(event, root);
   const minX = root.x - root.width / 2;
   const maxX = minX + root.width;
   const minY = root.y - root.height / 2;

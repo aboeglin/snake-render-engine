@@ -5,7 +5,10 @@ const { createClock } = require("../clock");
 
 const getTime = () => 500;
 const clock = createClock(getTime);
-const config = { clock };
+const lifecycles = {
+  mounted: () => {},
+};
+const config = { clock, lifecycles };
 
 const configuredTraverse = traverse(config);
 
@@ -14,7 +17,7 @@ describe("Sprite", () => {
     expect(typeof Sprite).toBe("function");
   });
 
-  test("The Rect function should build a rect js object", () => {
+  test("The Sprite function should build a sprite js object", () => {
     const expected = {
       type: "SPRITE",
       x: 0,

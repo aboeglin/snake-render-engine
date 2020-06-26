@@ -32,14 +32,45 @@ const initialTime = Date.now();
 
 // run(Scene());
 
-run(
+const makeStuff = (initialState) => {
+  let state = initialState;
+
+  const setState = (x) => {
+    state = x;
+  };
+
+  const getState = () => {
+    console.log("getState", state);
+    return state;
+  };
+
+  return {
+    setState,
+    getState,
+  };
+};
+
+const stuff = makeStuff(50);
+
+const withStuff = (node) => (props) => {
+  return Node(() => node({ ...props, stuffInjected: stuff }));
+};
+
+
+const Container = Node(({ stuffInjected }) =>
   Rect({
     x: 320,
-    y: 50, //(Math.sin(dt * .001) + 1) / 2 * 380 + 50,
+    y: stuffInjected.getState(),
     z: 0,
     width: 640,
     height: 100,
-    onClick: console.log,
+    onClick: () => stuffInjected.setState(stuffInjected.getState() + 10),
     children: [],
   })
 );
+
+const StuffedContainer = withStuff(Container);
+
+const Scene = Node(() => StuffedContainer());
+
+run(Scene());

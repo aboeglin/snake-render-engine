@@ -5,7 +5,10 @@ const { createClock } = require("../clock");
 
 const getTime = () => 500;
 const clock = createClock(getTime);
-const config = { clock };
+const lifecycles = {
+  mounted: () => {},
+};
+const config = { clock, lifecycles };
 
 const configuredTraverse = traverse(config);
 
@@ -25,14 +28,16 @@ describe("Rect", () => {
       children: [],
     };
 
-    const actual = configuredTraverse(Rect({
-      x: 0,
-      y: 0,
-      z: 0,
-      width: 5,
-      height: 5,
-      children: [],
-    }));
+    const actual = configuredTraverse(
+      Rect({
+        x: 0,
+        y: 0,
+        z: 0,
+        width: 5,
+        height: 5,
+        children: [],
+      })
+    );
 
     expect(actual).toEqual(expected);
   });

@@ -7,7 +7,15 @@ const { createClock } = require("./clock");
 replaceRaf([global]);
 const getTime = () => 499;
 const clock = createClock(getTime);
-const config = { clock };
+const lifecycles = {
+  mounted: () => {},
+  __getHandlers: () => ({
+    mountedHandlers: [],
+    unmountedHandlers: [],
+  }),
+  __reset: () => {},
+};
+const config = { clock, lifecycles };
 
 const configuredTraverse = traverse(config);
 
@@ -93,7 +101,7 @@ describe("core", () => {
       addEventListener: jest.fn(),
     };
 
-    const start = initWithRenderer(container, renderer, { clock });
+    const start = initWithRenderer(container, renderer, config);
     start(Scene());
   });
 
@@ -114,7 +122,7 @@ describe("core", () => {
       addEventListener: jest.fn(),
     };
 
-    const start = initWithRenderer(container, renderer, { clock });
+    const start = initWithRenderer(container, renderer, config);
     start(Scene());
 
     requestAnimationFrame.step();
@@ -125,7 +133,7 @@ describe("core", () => {
   test("initWithRenderer should initialize a clock and give time to render functions", () => {
     const expected = { time: 500, children: [] };
 
-    const ANode = Node((props, time) => ({
+    const ANode = Node((props, { time }) => ({
       time,
     }));
 
@@ -135,7 +143,7 @@ describe("core", () => {
       addEventListener: jest.fn(),
     };
 
-    const start = initWithRenderer(container, render, { clock });
+    const start = initWithRenderer(container, render, config);
     start(ANode());
 
     expect(render).toHaveBeenCalledWith(expected);
@@ -148,16 +156,19 @@ describe("core", () => {
 
     const render = () => {};
 
-    initWithRenderer(container, render, { clock });
+    initWithRenderer(container, render);
 
-    expect(container.addEventListener).toHaveBeenCalledWith("click", expect.any(Function));
+    expect(container.addEventListener).toHaveBeenCalledWith(
+      "click",
+      expect.any(Function)
+    );
   });
 
   test("initWithRenderer should wire event handlers after start", () => {
     let click = null;
     const expected = jest.fn();
 
-    const ANode = Node((props, time) => ({
+    const ANode = Node((props, { time }) => ({
       onClick: expected,
       x: 5,
       y: 5,
@@ -174,11 +185,131 @@ describe("core", () => {
 
     const render = () => {};
 
-    const start = initWithRenderer(container, render, { clock });
+    const start = initWithRenderer(container, render);
     start(ANode());
 
     click({ offsetX: 10, offsetY: 90, type: "click" });
 
     expect(expected).toHaveBeenCalled();
   });
+
+  test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
+    const mountedFn = jest.fn();
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+    
+    const ANode = Node((props, { mounted }) => {
+      mounted(mountedFn);
+    });
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+    start(ANode());
+    start(ANode()); // We trigger a second iteration to be sure it's only called once
+
+    expect(mountedFn).toHaveBeenCalledTimes(1);
+  });
+  
+  test("mounted should be called independently for each element when it is first rendered", () => {
+    let mountedFns = [];
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+    
+    const ANode = Node((props, { mounted }) => {
+      const mountedFn = jest.fn();
+      mountedFns.push(mountedFn);
+      mounted(mountedFn);
+    });
+
+    const TwoNodes = Node(() => ([
+      ANode(),
+      ANode(),
+    ]));
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+    start(TwoNodes());
+
+    expect(mountedFns[0]).toHaveBeenCalledTimes(1);
+    expect(mountedFns[1]).toHaveBeenCalledTimes(1);
+  });
+
+  test("nodes should be given a unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
+    const unmountedFn = jest.fn();
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+    
+    const Wrapper = Node(props => props.show ? ANode() : null);
+
+    const ANode = Node((props, { unmounted }) => {
+      unmounted(unmountedFn);
+    });
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+    start(Wrapper({ show: true }));
+    start(Wrapper({ show: false })); // We trigger a second iteration to be sure it's only called once
+
+    expect(unmountedFn).toHaveBeenCalledTimes(1);
+  });
+  
+  test("unmounted should not be called if the node is still being rendered", () => {
+    const unmountedFn = jest.fn();
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+    
+    const Wrapper = Node(props => props.show ? ANode() : null);
+
+    const ANode = Node((props, { unmounted }) => {
+      unmounted(unmountedFn);
+    });
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+    start(Wrapper({ show: true }));
+    start(Wrapper({ show: true })); // We trigger a second iteration to be sure it's only called once
+
+    expect(unmountedFn).not.toHaveBeenCalled();
+  });
+
+  // test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
+  //   const mountedFn = jest.fn();
+
+  //   const container = {
+  //     clientHeight: 100,
+  //     addEventListener: (type, handler) => {},
+  //   };
+    
+  //   const ANode = Node((props, { mounted }) => {
+  //     mounted(mountedFn);
+  //   });
+
+  //   const TwoNodes = Node(() => ([
+  //     ANode(),
+  //     ANode(),
+  //   ]));
+
+  //   const render = () => {};
+
+  //   const start = initWithRenderer(container, render, { clock });
+  //   start(TwoNodes());
+
+  //   expect(mountedFn).toHaveBeenCalledTimes(2);
+  // });
 });
