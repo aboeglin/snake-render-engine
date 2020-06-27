@@ -299,8 +299,8 @@ describe("core", () => {
       return ANode();
     });
 
-    const ANode = Node((_, { context }) => {
-      expect(context.stuff).toBe(expected);
+    const ANode = Node((_, { getContext }) => {
+      expect(getContext("stuff")).toBe(expected);
     });
 
     const render = () => {};
@@ -323,8 +323,8 @@ describe("core", () => {
       return { children: [ANode()] };
     });
 
-    const ANode = Node((_, { context }) => {
-      expect(context.stuff).toBe(expected);
+    const ANode = Node((_, { getContext }) => {
+      expect(getContext("stuff")).toBe(expected);
     });
 
     const render = () => {};
@@ -347,14 +347,44 @@ describe("core", () => {
       return [ANode()];
     });
 
-    const ANode = Node((_, { context }) => {
-      expect(context.stuff).toBe(expected);
+    const ANode = Node((_, { getContext }) => {
+      expect(getContext("stuff")).toBe(expected);
     });
 
     const render = () => {};
 
     const start = initWithRenderer(container, render);
     start(Wrapper());
+  });
+
+  test("context should remain accross re-renders", () => {
+    const expected = 1;
+    let actual = null;
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+
+    const Wrapper = Node((_, { setContext, mounted }) => {
+      mounted(() => setContext("stuff", expected));
+      return [ANode()];
+    });
+
+    const ANode = Node((_, { getContext }) => {
+      actual = getContext("stuff");
+    });
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+
+    const wrapper = Wrapper();
+    start(wrapper);
+    start(wrapper);
+    start(wrapper);
+
+    expect(actual).toBe(expected);
   });
 
   // test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {

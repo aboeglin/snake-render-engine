@@ -34,6 +34,7 @@ const makeLifecycles = () => {
 const traverse = curry((config, nodeResolver) => {
   // TODO: time should be computed only once and passed to children. So most likely, start() should compute it.
   // Otherwise we would end up with different nodes having different times within the same render cycle.
+  
   const node = nodeResolver({
     time: config.clock.getCurrentTime(),
     mounted: config.lifecycles.mounted,
@@ -41,7 +42,7 @@ const traverse = curry((config, nodeResolver) => {
     setContext: (key, value) => {
       nodeResolver.context[key] = value;
     },
-    context: nodeResolver.context,
+    getContext: (key) => nodeResolver.context[key],
   });
 
   if (typeof node === "function") {
