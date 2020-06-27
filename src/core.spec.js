@@ -200,7 +200,7 @@ describe("core", () => {
       clientHeight: 100,
       addEventListener: (type, handler) => {},
     };
-    
+
     const ANode = Node((props, { mounted }) => {
       mounted(mountedFn);
     });
@@ -213,7 +213,7 @@ describe("core", () => {
 
     expect(mountedFn).toHaveBeenCalledTimes(1);
   });
-  
+
   test("mounted should be called independently for each element when it is first rendered", () => {
     let mountedFns = [];
 
@@ -221,17 +221,14 @@ describe("core", () => {
       clientHeight: 100,
       addEventListener: (type, handler) => {},
     };
-    
+
     const ANode = Node((props, { mounted }) => {
       const mountedFn = jest.fn();
       mountedFns.push(mountedFn);
       mounted(mountedFn);
     });
 
-    const TwoNodes = Node(() => ([
-      ANode(),
-      ANode(),
-    ]));
+    const TwoNodes = Node(() => [ANode(), ANode()]);
 
     const render = () => {};
 
@@ -249,8 +246,8 @@ describe("core", () => {
       clientHeight: 100,
       addEventListener: (type, handler) => {},
     };
-    
-    const Wrapper = Node(props => props.show ? ANode() : null);
+
+    const Wrapper = Node((props) => (props.show ? ANode() : null));
 
     const ANode = Node((props, { unmounted }) => {
       unmounted(unmountedFn);
@@ -264,7 +261,7 @@ describe("core", () => {
 
     expect(unmountedFn).toHaveBeenCalledTimes(1);
   });
-  
+
   test("unmounted should not be called if the node is still being rendered", () => {
     const unmountedFn = jest.fn();
 
@@ -272,8 +269,8 @@ describe("core", () => {
       clientHeight: 100,
       addEventListener: (type, handler) => {},
     };
-    
-    const Wrapper = Node(props => props.show ? ANode() : null);
+
+    const Wrapper = Node((props) => (props.show ? ANode() : null));
 
     const ANode = Node((props, { unmounted }) => {
       unmounted(unmountedFn);
@@ -288,6 +285,78 @@ describe("core", () => {
     expect(unmountedFn).not.toHaveBeenCalled();
   });
 
+  test("traverse should provide a setContext function to set data in context", () => {
+    const expected = 1;
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+
+    const Wrapper = Node((_, { setContext }) => {
+      setContext("stuff", expected);
+
+      return ANode();
+    });
+
+    const ANode = Node((_, { context }) => {
+      expect(context.stuff).toBe(expected);
+    });
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+    start(Wrapper());
+  });
+
+  test("context should also be available for array children", () => {
+    const expected = 1;
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+
+    const Wrapper = Node((_, { setContext }) => {
+      setContext("stuff", expected);
+
+      return { children: [ANode()] };
+    });
+
+    const ANode = Node((_, { context }) => {
+      expect(context.stuff).toBe(expected);
+    });
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+    start(Wrapper());
+  });
+
+  test("context should also be available for array nodes", () => {
+    const expected = 1;
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+
+    const Wrapper = Node((_, { setContext }) => {
+      setContext("stuff", expected);
+
+      return [ANode()];
+    });
+
+    const ANode = Node((_, { context }) => {
+      expect(context.stuff).toBe(expected);
+    });
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+    start(Wrapper());
+  });
+
   // test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
   //   const mountedFn = jest.fn();
 
@@ -295,7 +364,7 @@ describe("core", () => {
   //     clientHeight: 100,
   //     addEventListener: (type, handler) => {},
   //   };
-    
+
   //   const ANode = Node((props, { mounted }) => {
   //     mounted(mountedFn);
   //   });

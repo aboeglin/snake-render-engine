@@ -38,19 +38,34 @@ const traverse = curry((config, nodeResolver) => {
     time: config.clock.getCurrentTime(),
     mounted: config.lifecycles.mounted,
     unmounted: config.lifecycles.unmounted,
+    setContext: (key, value) => {
+      nodeResolver.context[key] = value;
+    },
+    context: nodeResolver.context,
   });
 
   if (typeof node === "function") {
+    node.context = { ...nodeResolver.context, ...node.context };
     return { children: [traverse(config, node)] };
   } else if (Array.isArray(node)) {
-    return { children: node.map(traverse(config)) };
+    return {
+      children: node.map((nr) => {
+        nr.context = { ...nr.context, ...nodeResolver.context };
+        return traverse(config, nr);
+      }),
+    };
   } else if (node === undefined || node === null) {
     return {};
   }
 
   return {
     ...node,
-    children: node.children ? node.children.map(traverse(config)) : [],
+    children: node.children
+      ? node.children.map((nr) => {
+          nr.context = { ...nr.context, ...nodeResolver.context };
+          return traverse(config, nr);
+        })
+      : [],
   };
 });
 
