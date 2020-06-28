@@ -6,16 +6,16 @@ module.exports = {
       coverage: "jest --coverage",
     },
     format: "prettier --write src/**/* && prettier --write src/*",
-    bundle: "microbundle build --raw -f iife",
+    bundle: "microbundle build --raw",
     demo: {
       default: {
-        script: "parcel demo/index.html",
-        description: "runs demo",
-      },
-      watch: {
-        script: "parcel watch demo/index.html",
+        script: "parcel --out-dir demo/dist demo/index.html",
         description: "runs demo",
       },
     },
+    clean: {
+      description: "delete build assets",
+      script: "rm -r dist/; rm -r demo/dist/; rm -r coverage/; rm -r .cache;"
+    }
   },
 };

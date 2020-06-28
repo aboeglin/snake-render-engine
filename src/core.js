@@ -1,4 +1,4 @@
-import { __, contains, curry, forEach, pipe } from "ramda";
+import { contains, curry, forEach, pipe } from "ramda";
 import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
 
