@@ -6,6 +6,7 @@ module.exports = {
       coverage: "jest --coverage",
     },
     format: "prettier --write src/**/* && prettier --write src/*",
+    bundle: "microbundle build --raw -f iife",
     demo: {
       default: {
         script: "parcel demo/index.html",

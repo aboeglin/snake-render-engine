@@ -1,8 +1,8 @@
-const { replaceRaf } = require("raf-stub");
+import { replaceRaf } from "raf-stub";
 
-const { traverse, initWithRenderer } = require("./core");
-const { Node } = require("./node");
-const { createClock } = require("./clock");
+import { traverse, initWithRenderer } from "./core";
+import { Node } from "./node";
+import { createClock } from "./clock";
 
 replaceRaf([global]);
 const getTime = () => 499;

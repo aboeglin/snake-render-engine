@@ -1,7 +1,7 @@
-const ndArray = require("ndarray");
-const savePixels = require("save-pixels");
+import ndArray from "ndarray";
+import savePixels from "save-pixels";
 
-const makeSnapshot = (gl, width, height) => {
+export const makeSnapshot = (gl, width, height) => {
   return new Promise((resolve, reject) => {
     const canvasPixels = new Uint8Array(width * height * 4);
     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, canvasPixels);
@@ -12,7 +12,7 @@ const makeSnapshot = (gl, width, height) => {
 
     const chunks = [];
     const reader = savePixels(nd, ".png");
-    reader.on("data", chunk => {
+    reader.on("data", (chunk) => {
       chunks.push(chunk);
     });
 
@@ -22,22 +22,18 @@ const makeSnapshot = (gl, width, height) => {
   });
 };
 
-const rotatePixelArray = (pixelArray,w,h) => {
+const rotatePixelArray = (pixelArray, w, h) => {
   var rotatedArray = [];
 
-  for (var x=0;x<w;x++) {
-    for(var y=0;y<h;y++) {
-      index = (x+y*w)*4;
+  for (var x = 0; x < w; x++) {
+    for (var y = 0; y < h; y++) {
+      let index = (x + y * w) * 4;
       rotatedArray.push(pixelArray[index]);
-      rotatedArray.push(pixelArray[index+1]);
-      rotatedArray.push(pixelArray[index+2]);
-      rotatedArray.push(pixelArray[index+3]);
+      rotatedArray.push(pixelArray[index + 1]);
+      rotatedArray.push(pixelArray[index + 2]);
+      rotatedArray.push(pixelArray[index + 3]);
     }
   }
 
   return rotatedArray;
-}
-
-module.exports = {
-  makeSnapshot
 };

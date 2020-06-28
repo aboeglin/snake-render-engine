@@ -1,7 +1,7 @@
 const NOT_STARTED = -1;
 
 // TODO: Add pause, stop, getDeltaT
-const createClock = getTime => {
+export const createClock = getTime => {
   let t0 = NOT_STARTED;
 
   return {
@@ -12,8 +12,4 @@ const createClock = getTime => {
       t0 = getTime();
     }
   };
-};
-
-module.exports = {
-  createClock
 };

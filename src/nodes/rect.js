@@ -1,4 +1,4 @@
-const { Node } = require("../node");
+import { Node } from "../node";
 
 const Rect = Node((props) => ({
   type: "RECT",
@@ -11,4 +11,4 @@ const Rect = Node((props) => ({
   onClick: props.onClick, // Must be tested
 }));
 
-module.exports = Rect;
+export default Rect;

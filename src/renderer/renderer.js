@@ -1,10 +1,10 @@
-const { curry, propOr, insert, append } = require("ramda");
-const { mat4, glMatrix } = require("gl-matrix");
+import { curry, propOr, insert, append } from "ramda";
+import { mat4, glMatrix } from "gl-matrix";
 
-const { createColorProgram, createTextureProgram } = require("./programs");
-const { makeTextureHandler } = require("./textures");
+import { createColorProgram, createTextureProgram } from "./programs";
+import { makeTextureHandler } from "./textures";
 
-const initRenderer = ({ gl, width, height }) => {
+export const initRenderer = ({ gl, width, height }) => {
   if (gl === undefined) {
     throw new Error("You must provide a context !");
   }
@@ -197,5 +197,3 @@ const getTextCoords = () => [
   0.0,
   0.0,
 ];
-
-module.exports = { initRenderer };

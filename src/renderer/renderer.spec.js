@@ -1,12 +1,14 @@
-const makeGL = require("gl");
-const { toMatchImageSnapshot } = require("jest-image-snapshot");
-const fs = require("fs");
-const PNG = require("pngjs").PNG;
+import makeGL from "gl";
+import { toMatchImageSnapshot } from "jest-image-snapshot";
+import fs from "fs";
+import pnjJs from "pngjs";
 
-const { initRenderer } = require("./renderer");
-const { makeSnapshot } = require("../test-utils");
+import { initRenderer } from "./renderer";
+import { makeSnapshot } from "../test-utils";
 
 expect.extend({ toMatchImageSnapshot });
+
+const PNG = pnjJs.PNG;
 
 const VIEWPORT_WIDTH = 128;
 const VIEWPORT_HEIGHT = 128;

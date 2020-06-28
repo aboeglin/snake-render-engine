@@ -1,4 +1,4 @@
-const { handleEvent, fromDOMEvent } = require("./events");
+import { handleEvent, fromDOMEvent } from "./events";
 
 describe("events", () => {
   test("handleEvent should call the click handler of a Rect when clicked in", () => {

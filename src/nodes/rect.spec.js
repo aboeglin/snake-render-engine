@@ -1,7 +1,7 @@
-const Rect = require("./rect");
-const { Node } = require("../node");
-const { traverse } = require("../core");
-const { createClock } = require("../clock");
+import Rect from "./rect";
+import { Node } from "../node";
+import { traverse } from "../core";
+import { createClock } from "../clock";
 
 const getTime = () => 500;
 const clock = createClock(getTime);

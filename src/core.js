@@ -1,6 +1,6 @@
-const { __, contains, curry, forEach, pipe } = require("ramda");
-const { createClock } = require("./clock");
-const { handleEvent, fromDOMEvent } = require("./events");
+import { __, contains, curry, forEach, pipe } from "ramda";
+import { createClock } from "./clock";
+import { handleEvent, fromDOMEvent } from "./events";
 
 const makeLifecycles = () => {
   let mountedHandlers = [];
@@ -31,7 +31,7 @@ const makeLifecycles = () => {
   };
 };
 
-const traverse = curry((config, nodeResolver) => {
+export const traverse = curry((config, nodeResolver) => {
   // TODO: time should be computed only once and passed to children. So most likely, start() should compute it.
   // Otherwise we would end up with different nodes having different times within the same render cycle.
   
@@ -75,7 +75,7 @@ const defaultConfig = {
   lifecycles: makeLifecycles(),
 };
 
-const initWithRenderer = (container, render, config = defaultConfig) => {
+export const initWithRenderer = (container, render, config = defaultConfig) => {
   // We need to closure the vdom, so that event handlers act on what is currently rendered
   let vdom = null;
 
@@ -110,9 +110,4 @@ const handleLifecycles = (prevHandlers, currHandlers) => {
   forEach((h) => !contains(h)(currHandlers.unmountedHandlers) && h())(
     prevHandlers.unmountedHandlers
   );
-};
-
-module.exports = {
-  traverse,
-  initWithRenderer,
 };

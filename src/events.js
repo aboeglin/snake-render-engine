@@ -1,11 +1,11 @@
-const { curry, forEach } = require("ramda");
+import { curry, forEach } from "ramda";
 
 // Add main event types and not only clicks:
 // - mousemove
 // - keydown
 // - keyup
 // ...
-const handleEvent = curry((event, root) => {
+export const handleEvent = curry((event, root) => {
   const minX = root.x - root.width / 2;
   const maxX = minX + root.width;
   const minY = root.y - root.height / 2;
@@ -23,10 +23,8 @@ const handleEvent = curry((event, root) => {
   }
 });
 
-const fromDOMEvent = curry((container, event) => ({
+export const fromDOMEvent = curry((container, event) => ({
   x: event.offsetX,
   y: container.clientHeight - event.offsetY,
   type: event.type,
 }));
-
-module.exports = { handleEvent, fromDOMEvent };

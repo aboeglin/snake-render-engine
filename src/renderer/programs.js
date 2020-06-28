@@ -1,10 +1,10 @@
-const {
+import {
   FRAGMENT_SHADER_COLOR,
   FRAGMENT_SHADER_TEXTURE,
   VERTEX_SHADER,
-} = require("./shaders");
+} from "./shaders";
 
-const createColorProgram = (gl) => {
+export const createColorProgram = (gl) => {
   const vs = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vs, VERTEX_SHADER);
   gl.compileShader(vs);
@@ -13,7 +13,7 @@ const createColorProgram = (gl) => {
   gl.shaderSource(fsc, FRAGMENT_SHADER_COLOR);
   gl.compileShader(fsc);
 
-  program = gl.createProgram();
+  const program = gl.createProgram();
   gl.attachShader(program, vs);
   gl.attachShader(program, fsc);
   gl.linkProgram(program);
@@ -35,7 +35,7 @@ const createColorProgram = (gl) => {
   return program;
 };
 
-const createTextureProgram = (gl) => {
+export const createTextureProgram = (gl) => {
   const vs = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vs, VERTEX_SHADER);
   gl.compileShader(vs);
@@ -44,7 +44,7 @@ const createTextureProgram = (gl) => {
   gl.shaderSource(fst, FRAGMENT_SHADER_TEXTURE);
   gl.compileShader(fst);
 
-  program = gl.createProgram();
+  const program = gl.createProgram();
   gl.attachShader(program, vs);
   gl.attachShader(program, fst);
   gl.linkProgram(program);
@@ -65,9 +65,4 @@ const createTextureProgram = (gl) => {
     console.log(gl.getProgramInfoLog(program));
 
   return program;
-};
-
-module.exports = {
-  createColorProgram,
-  createTextureProgram,
 };

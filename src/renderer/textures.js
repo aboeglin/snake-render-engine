@@ -1,5 +1,5 @@
 // TODO: Add unit tests for that feature.
-const makeTextureHandler = (gl) => {
+export const makeTextureHandler = (gl) => {
   const textures = new WeakMap();
 
   const getTexture = (texture) => {
@@ -37,8 +37,4 @@ const makeTextureHandler = (gl) => {
   };
 
   return getTexture;
-};
-
-module.exports = {
-  makeTextureHandler,
 };

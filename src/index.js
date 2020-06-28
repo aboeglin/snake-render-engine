@@ -1,9 +1,9 @@
-const { initWithRenderer } = require("./core");
-const { initRenderer } = require("./renderer/renderer");
-const { Node } = require("./node");
-const Rect = require("./nodes/rect");
+import { initWithRenderer } from "./core";
+import { initRenderer } from "./renderer/renderer";
+import { Node } from "./node";
+import Rect from "./nodes/rect";
 
-module.exports = {
+export {
   initWithRenderer,
   initRenderer,
   Node,

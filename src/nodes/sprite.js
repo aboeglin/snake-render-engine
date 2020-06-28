@@ -1,4 +1,4 @@
-const { Node } = require("../node");
+import { Node } from "../node";
 
 const Sprite = Node((props) => ({
   type: "SPRITE",
@@ -11,4 +11,4 @@ const Sprite = Node((props) => ({
   children: props.children,
 }));
 
-module.exports = Sprite;
+export default Sprite;

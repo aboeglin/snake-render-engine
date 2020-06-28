@@ -1,4 +1,4 @@
-const { createClock } = require("./clock");
+import { createClock } from "./clock";
 
 describe("Clock", () => {
   test("It should export a create function", () => {
