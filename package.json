@@ -1,6 +1,6 @@
 {
   "name": "snake-render-engine",
-  "version": "1.0.0--alpha-1",
+  "version": "1.0.0--alpha-2",
   "author": "Arnaud Boeglin",
   "license": "MIT",
   "description": "2D render engine for the game",
