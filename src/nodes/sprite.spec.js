@@ -6,6 +6,7 @@ const getTime = () => 500;
 const clock = createClock(getTime);
 const lifecycles = {
   mounted: () => {},
+  unmounted: () => {},
 };
 const config = { clock, lifecycles };
 
@@ -18,6 +19,7 @@ describe("Sprite", () => {
 
   test("The Sprite function should build a sprite js object", () => {
     const expected = {
+      __internal: expect.anything(),
       type: "SPRITE",
       x: 0,
       y: 0,
@@ -32,7 +34,7 @@ describe("Sprite", () => {
       children: [],
     };
 
-    const actual = configuredTraverse(Sprite({
+    const actual = configuredTraverse(null, Sprite({
       x: 0,
       y: 0,
       z: 0,

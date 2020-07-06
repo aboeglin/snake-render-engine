@@ -7,6 +7,7 @@ const getTime = () => 500;
 const clock = createClock(getTime);
 const lifecycles = {
   mounted: () => {},
+  unmounted: () => {},
 };
 const config = { clock, lifecycles };
 
@@ -19,6 +20,7 @@ describe("Rect", () => {
 
   test("The Rect function should build a rect js object", () => {
     const expected = {
+      __internal: expect.anything(),
       type: "RECT",
       x: 0,
       y: 0,
@@ -29,6 +31,7 @@ describe("Rect", () => {
     };
 
     const actual = configuredTraverse(
+      null,
       Rect({
         x: 0,
         y: 0,
@@ -44,6 +47,7 @@ describe("Rect", () => {
 
   test("The Rect function should take children", () => {
     const expected = {
+      __internal: expect.anything(),
       type: "RECT",
       x: 0,
       y: 0,
@@ -52,6 +56,7 @@ describe("Rect", () => {
       height: 5,
       children: [
         {
+          __internal: expect.anything(),
           type: "RECT",
           x: 0,
           y: 0,
@@ -64,6 +69,7 @@ describe("Rect", () => {
     };
 
     const actual = configuredTraverse(
+      null,
       Rect({
         x: 0,
         y: 0,
@@ -81,8 +87,10 @@ describe("Rect", () => {
 
   test("The node functions should be able to render custom logic nodes", () => {
     const expected = {
+      __internal: expect.anything(),
       children: [
         {
+          __internal: expect.anything(),
           type: "RECT",
           x: 1,
           y: 1,
@@ -106,6 +114,7 @@ describe("Rect", () => {
     );
 
     const actual = configuredTraverse(
+      null,
       CustomNode({
         x: 2,
         y: 2,

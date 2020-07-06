@@ -9,9 +9,10 @@ const getTime = () => 499;
 const clock = createClock(getTime);
 const lifecycles = {
   mounted: () => {},
-  __getHandlers: () => ({
-    mountedHandlers: [],
-    unmountedHandlers: [],
+  unmounted: () => {},
+  __getResolvers: () => ({
+    mountedResolvers: [],
+    unmountedResolvers: [],
   }),
   __reset: () => {},
 };
@@ -40,24 +41,36 @@ describe("core", () => {
   test("traverse should resolve the node given", () => {
     const SomeNode = Node(() => {});
     const node = jest.fn(SomeNode({}));
-    configuredTraverse(node);
+    configuredTraverse(null, node);
     expect(node.mock.calls.length).toBe(1);
   });
 
   test("traverse should return a tree of resolved nodes", () => {
     const expected = {
+      __internal: { resolver: expect.anything() },
       children: [
         {
+          __internal: { resolver: expect.anything() },
           children: [
-            { x: 2, y: 3, children: [] },
-            { x: 5, y: 7, children: [] },
+            {
+              __internal: { resolver: expect.anything() },
+              x: 2,
+              y: 3,
+              children: [],
+            },
+            {
+              __internal: { resolver: expect.anything() },
+              x: 5,
+              y: 7,
+              children: [],
+            },
           ],
         },
       ],
     };
 
     const scene = Scene();
-    const tree = configuredTraverse(scene);
+    const tree = configuredTraverse(null, scene);
     expect(tree).toEqual(expected);
   });
 
@@ -69,11 +82,25 @@ describe("core", () => {
     }));
 
     const expected = {
-      children: [{ x: 2, y: 3, children: [] }, { x: 5, y: 7, children: [] }],
+      __internal: { resolver: expect.anything() },
+      children: [
+        {
+          __internal: { resolver: expect.anything() },
+          x: 2,
+          y: 3,
+          children: [],
+        },
+        {
+          __internal: { resolver: expect.anything() },
+          x: 5,
+          y: 7,
+          children: [],
+        },
+      ],
     };
 
     const scene = Scene();
-    const tree = configuredTraverse(scene);
+    const tree = configuredTraverse(null, scene);
     expect(tree).toEqual(expected);
   });
 
@@ -83,11 +110,23 @@ describe("core", () => {
 
   test("initWithRenderer should accept a renderer function called with the renderer node tree", (done) => {
     const expected = {
+      __internal: { resolver: expect.anything() },
       children: [
         {
+          __internal: { resolver: expect.anything() },
           children: [
-            { x: 2, y: 3, children: [] },
-            { x: 5, y: 7, children: [] },
+            {
+              __internal: { resolver: expect.anything() },
+              x: 2,
+              y: 3,
+              children: [],
+            },
+            {
+              __internal: { resolver: expect.anything() },
+              x: 5,
+              y: 7,
+              children: [],
+            },
           ],
         },
       ],
@@ -107,11 +146,23 @@ describe("core", () => {
 
   test("initWithRenderer should accept a renderer function called with the renderer node tree on every requestAnimationFrame", () => {
     const expected = {
+      __internal: { resolver: expect.anything() },
       children: [
         {
+          __internal: { resolver: expect.anything() },
           children: [
-            { x: 2, y: 3, children: [] },
-            { x: 5, y: 7, children: [] },
+            {
+              __internal: { resolver: expect.anything() },
+              x: 2,
+              y: 3,
+              children: [],
+            },
+            {
+              __internal: { resolver: expect.anything() },
+              x: 5,
+              y: 7,
+              children: [],
+            },
           ],
         },
       ],
@@ -131,7 +182,11 @@ describe("core", () => {
   });
 
   test("initWithRenderer should initialize a clock and give time to render functions", () => {
-    const expected = { time: 500, children: [] };
+    const expected = {
+      __internal: { resolver: expect.anything() },
+      time: 500,
+      children: [],
+    };
 
     const ANode = Node((props, { time }) => ({
       time,
@@ -194,6 +249,8 @@ describe("core", () => {
   });
 
   test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
+    // Check this test again, not sure it does what it should.
+
     const mountedFn = jest.fn();
 
     const container = {
@@ -208,10 +265,39 @@ describe("core", () => {
     const render = () => {};
 
     const start = initWithRenderer(container, render);
-    start(ANode());
-    start(ANode()); // We trigger a second iteration to be sure it's only called once
+    const aNode = ANode();
+    start(aNode);
+    start(aNode); // We trigger a second iteration to be sure it's only called once
 
     expect(mountedFn).toHaveBeenCalledTimes(1);
+  });
+
+  test("nodes should be given a mounted function that is called once for each constructed element", () => {
+    // Check this test again, not sure it does what it should.
+
+    const mountedFn = jest.fn();
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+
+    const ANode = Node((props, { mounted }) => {
+      mounted(mountedFn);
+    });
+
+    const Scene = Node(() => [ANode(), ANode()]);
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+
+    const scene = Scene();
+    // We construct a second element that should also call the mountedFn.
+
+    start(scene);
+
+    expect(mountedFn).toHaveBeenCalledTimes(2);
   });
 
   test("mounted should be called independently for each element when it is first rendered", () => {
@@ -239,25 +325,37 @@ describe("core", () => {
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
   });
 
-  test("nodes should be given a unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
+  test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
+    // Doesn't work, we need to do tree diff in order to resolve instances of nodes.
     const unmountedFn = jest.fn();
+    let renders = 0;
 
     const container = {
       clientHeight: 100,
       addEventListener: (type, handler) => {},
     };
 
-    const Wrapper = Node((props) => (props.show ? ANode() : null));
+    const ANode = Node((props) => {
+      renders = renders + 1;
 
-    const ANode = Node((props, { unmounted }) => {
+      return renders > 1 && renders < 3 ? null : WillUnmount();
+    });
+
+    const Wrapper = Node((props) => ANode());
+
+    const WillUnmount = Node((props, { unmounted }) => {
       unmounted(unmountedFn);
     });
 
     const render = () => {};
 
     const start = initWithRenderer(container, render);
-    start(Wrapper({ show: true }));
-    start(Wrapper({ show: false })); // We trigger a second iteration to be sure it's only called once
+    const wrapper = Wrapper();
+    start(wrapper);
+    expect(unmountedFn).toHaveBeenCalledTimes(0);
+    start(wrapper); // We trigger a second iteration to be sure it's only called once
+    start(wrapper); // We trigger a second iteration to be sure it's only called once
+    start(wrapper); // We trigger a second iteration to be sure it's only called once
 
     expect(unmountedFn).toHaveBeenCalledTimes(1);
   });
@@ -270,7 +368,7 @@ describe("core", () => {
       addEventListener: (type, handler) => {},
     };
 
-    const Wrapper = Node((props) => (props.show ? ANode() : null));
+    const Wrapper = Node((props) => ANode());
 
     const ANode = Node((props, { unmounted }) => {
       unmounted(unmountedFn);
@@ -279,8 +377,12 @@ describe("core", () => {
     const render = () => {};
 
     const start = initWithRenderer(container, render);
-    start(Wrapper({ show: true }));
-    start(Wrapper({ show: true })); // We trigger a second iteration to be sure it's only called once
+    const wrapper = Wrapper({ show: true });
+
+    start(wrapper);
+    start(wrapper);
+    // start(wrapper);
+    // start(wrapper);
 
     expect(unmountedFn).not.toHaveBeenCalled();
   });
@@ -386,6 +488,41 @@ describe("core", () => {
 
     expect(actual).toBe(expected);
   });
+
+  test("nodes should be given a state object and a setState function to interface with state", (done) => {
+    const expected = 1;
+    let renders = 0;
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+
+    const Wrapper = Node((_, { setState, state, mounted }) => {
+      renders = renders + 1;
+
+      mounted(() => {
+        setState(expected);
+      });
+
+      if (renders === 2) {
+        expect(state).toEqual(expected);
+        done();
+      }
+
+      return;
+    });
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+
+    const wrapper = Wrapper();
+    start(wrapper);
+    start(wrapper); // state set in render one will only be available on next cycle.
+  });
+
+  // TODO: Add cases for lifecycles such as children swapping etc ( that might force key to be added or not ).
 
   // test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
   //   const mountedFn = jest.fn();

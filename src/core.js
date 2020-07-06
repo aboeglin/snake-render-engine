@@ -3,70 +3,89 @@ import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
 
 const makeLifecycles = () => {
-  let mountedHandlers = [];
-  const mounted = (handler) => {
-    mountedHandlers.push(handler);
-  };
+  let mountedResolvers = [];
+  const mounted = curry((resolver, handler) => {
+    resolver.mountedHandler = handler;
+    mountedResolvers.push(resolver);
+  });
 
-  let unmountedHandlers = [];
-  const unmounted = (handler) => {
-    unmountedHandlers.push(handler);
-  };
+  let unmountedResolvers = [];
+  const unmounted = curry((resolver, handler) => {
+    resolver.unmountedHandler = handler;
+    unmountedResolvers.push(resolver);
+  });
 
   const reset = () => {
-    mountedHandlers = [];
-    unmountedHandlers = [];
+    mountedResolvers = [];
+    unmountedResolvers = [];
   };
 
-  const getHandlers = () => ({
-    mountedHandlers,
-    unmountedHandlers,
+  const getResolvers = () => ({
+    mountedResolvers,
+    unmountedResolvers,
   });
 
   return {
     mounted,
     unmounted,
-    __getHandlers: getHandlers,
+    __getResolvers: getResolvers,
     __reset: reset,
   };
 };
 
-export const traverse = curry((config, nodeResolver) => {
+export const traverse = curry((config, subtree, nodeResolver) => {
   // TODO: time should be computed only once and passed to children. So most likely, start() should compute it.
   // Otherwise we would end up with different nodes having different times within the same render cycle.
-  
+
+  let resolverRef = null;
+  if (subtree && subtree.__internal) {
+    resolverRef = subtree.__internal.resolver;
+  }
+
   const node = nodeResolver({
     time: config.clock.getCurrentTime(),
-    mounted: config.lifecycles.mounted,
-    unmounted: config.lifecycles.unmounted,
+    mounted: config.lifecycles.mounted(resolverRef || nodeResolver),
+    unmounted: config.lifecycles.unmounted(resolverRef || nodeResolver),
     setContext: (key, value) => {
       nodeResolver.context[key] = value;
     },
     getContext: (key) => nodeResolver.context[key],
   });
 
+  if (!resolverRef) {
+    resolverRef = nodeResolver;
+  }
+
   if (typeof node === "function") {
     node.context = { ...nodeResolver.context, ...node.context };
-    return { children: [traverse(config, node)] };
+    const child = subtree && subtree.children ? subtree.children[0] : undefined;
+    return {
+      children: [traverse(config, child, node)],
+      __internal: { resolver: resolverRef },
+    };
   } else if (Array.isArray(node)) {
     return {
-      children: node.map((nr) => {
+      children: node.map((nr, i) => {
+        const child = subtree ? subtree.children[i] : undefined;
         nr.context = { ...nr.context, ...nodeResolver.context };
-        return traverse(config, nr);
+        return traverse(config, child, nr);
       }),
+      __internal: { resolver: resolverRef },
     };
   } else if (node === undefined || node === null) {
-    return {};
+    return { __internal: { resolver: resolverRef } };
   }
 
   return {
     ...node,
     children: node.children
-      ? node.children.map((nr) => {
+      ? node.children.map((nr, i) => {
+          const child = subtree ? subtree.children[i] : undefined;
           nr.context = { ...nr.context, ...nodeResolver.context };
-          return traverse(config, nr);
+          return traverse(config, child, nr);
         })
       : [],
+    __internal: { resolver: resolverRef },
   };
 });
 
@@ -77,24 +96,24 @@ const defaultConfig = {
 
 export const initWithRenderer = (container, render, config = defaultConfig) => {
   // We need to closure the vdom, so that event handlers act on what is currently rendered
-  let vdom = null;
+  let tree = null;
 
   const wireEvent = pipe(
     fromDOMEvent(container),
-    (event) => handleEvent(event, vdom)
+    (event) => handleEvent(event, tree)
   );
 
   const start = (nodeElement) => {
-    const prevHandlers = config.lifecycles.__getHandlers();
+    const prevResolvers = config.lifecycles.__getResolvers();
     config.lifecycles.__reset();
 
-    vdom = traverse(config, nodeElement);
+    tree = traverse(config, tree, nodeElement);
 
-    const handlers = config.lifecycles.__getHandlers();
+    const currResolvers = config.lifecycles.__getResolvers();
 
-    handleLifecycles(prevHandlers, handlers);
+    handleLifecycles(prevResolvers, currResolvers);
 
-    render(vdom);
+    render(tree);
     requestAnimationFrame(() => start(nodeElement));
   };
 
@@ -103,11 +122,12 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
   return start;
 };
 
-const handleLifecycles = (prevHandlers, currHandlers) => {
-  forEach((h) => !contains(h)(prevHandlers.mountedHandlers) && h())(
-    currHandlers.mountedHandlers
-  );
-  forEach((h) => !contains(h)(currHandlers.unmountedHandlers) && h())(
-    prevHandlers.unmountedHandlers
-  );
+const handleLifecycles = (prevResolvers, currResolvers) => {
+  forEach(
+    (r) => !contains(r)(prevResolvers.mountedResolvers) && r.mountedHandler()
+  )(currResolvers.mountedResolvers);
+  forEach(
+    (r) =>
+      !contains(r)(currResolvers.unmountedResolvers) && r.unmountedHandler()
+  )(prevResolvers.unmountedResolvers);
 };
