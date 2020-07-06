@@ -1,6 +1,3 @@
-import { curry } from "ramda";
-let count = 0;
-// Add setState // state ( see _node.js )
 export const Node = (fn) => {
   const constructor = (props) => {
     let state = {};
@@ -8,20 +5,15 @@ export const Node = (fn) => {
       state = newState;
     };
 
-    const resolver = (internalFeatures) => {
-      const resolved = fn(props || {}, {
+    const resolver = (internalFeatures) =>
+      fn(props || {}, {
         ...internalFeatures,
         state,
         setState,
       });
-      // if (resolved) {
-      //   resolved.__internal = resolver;
-      // }
-      return resolved;
-    };
 
+    resolver.owner = constructor;
     resolver.context = {};
-
     return resolver;
   };
 

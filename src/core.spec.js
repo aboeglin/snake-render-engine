@@ -47,19 +47,19 @@ describe("core", () => {
 
   test("traverse should return a tree of resolved nodes", () => {
     const expected = {
-      __internal: { resolver: expect.anything() },
+      __internal: expect.anything(),
       children: [
         {
-          __internal: { resolver: expect.anything() },
+          __internal: expect.anything(),
           children: [
             {
-              __internal: { resolver: expect.anything() },
+              __internal: expect.anything(),
               x: 2,
               y: 3,
               children: [],
             },
             {
-              __internal: { resolver: expect.anything() },
+              __internal: expect.anything(),
               x: 5,
               y: 7,
               children: [],
@@ -82,16 +82,16 @@ describe("core", () => {
     }));
 
     const expected = {
-      __internal: { resolver: expect.anything() },
+      __internal: expect.anything(),
       children: [
         {
-          __internal: { resolver: expect.anything() },
+          __internal: expect.anything(),
           x: 2,
           y: 3,
           children: [],
         },
         {
-          __internal: { resolver: expect.anything() },
+          __internal: expect.anything(),
           x: 5,
           y: 7,
           children: [],
@@ -110,19 +110,19 @@ describe("core", () => {
 
   test("initWithRenderer should accept a renderer function called with the renderer node tree", (done) => {
     const expected = {
-      __internal: { resolver: expect.anything() },
+      __internal: expect.anything(),
       children: [
         {
-          __internal: { resolver: expect.anything() },
+          __internal: expect.anything(),
           children: [
             {
-              __internal: { resolver: expect.anything() },
+              __internal: expect.anything(),
               x: 2,
               y: 3,
               children: [],
             },
             {
-              __internal: { resolver: expect.anything() },
+              __internal: expect.anything(),
               x: 5,
               y: 7,
               children: [],
@@ -146,19 +146,19 @@ describe("core", () => {
 
   test("initWithRenderer should accept a renderer function called with the renderer node tree on every requestAnimationFrame", () => {
     const expected = {
-      __internal: { resolver: expect.anything() },
+      __internal: expect.anything(),
       children: [
         {
-          __internal: { resolver: expect.anything() },
+          __internal: expect.anything(),
           children: [
             {
-              __internal: { resolver: expect.anything() },
+              __internal: expect.anything(),
               x: 2,
               y: 3,
               children: [],
             },
             {
-              __internal: { resolver: expect.anything() },
+              __internal: expect.anything(),
               x: 5,
               y: 7,
               children: [],
@@ -183,7 +183,7 @@ describe("core", () => {
 
   test("initWithRenderer should initialize a clock and give time to render functions", () => {
     const expected = {
-      __internal: { resolver: expect.anything() },
+      __internal: expect.anything(),
       time: 500,
       children: [],
     };
@@ -320,6 +320,70 @@ describe("core", () => {
 
     const start = initWithRenderer(container, render);
     start(TwoNodes());
+
+    expect(mountedFns[0]).toHaveBeenCalledTimes(1);
+    expect(mountedFns[1]).toHaveBeenCalledTimes(1);
+  });
+
+  // test.only("playground", () => {
+  //   const Node1 = Node((_, { state, setState }) => {
+  //     setState(Math.random());
+  //     console.log(state);
+  //   });
+
+  //   Node1()({});
+  //   Node1()({});
+
+  //   const node1 = Node1();
+  //   const node2 = Node1();
+  //   node1({});
+  //   node2({});
+
+  //   node1({});
+  //   node2({});
+  // });
+
+  // TODO: Add cases for lifecycles such as children swapping etc ( that might force key to be added or not ).
+  test("mounted should be called when a new child is rendered", () => {
+    let renders = 0;
+    const mountedFns = [];
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+
+    const Parent = Node(() => {
+      renders = renders + 1;
+
+      if (renders === 1) {
+        return Child1();
+      } else {
+        return Child2();
+      }
+    });
+
+    const Child1 = Node((_, { mounted }) => {
+      const cb = jest.fn();
+      mountedFns.push(cb);
+
+      mounted(cb);
+    });
+
+    const Child2 = Node((_, { mounted }) => {
+      const cb = jest.fn();
+      mountedFns.push(cb);
+
+      mounted(cb);
+    });
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+
+    const parent = Parent();
+    start(parent);
+    start(parent);
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
@@ -521,8 +585,6 @@ describe("core", () => {
     start(wrapper);
     start(wrapper); // state set in render one will only be available on next cycle.
   });
-
-  // TODO: Add cases for lifecycles such as children swapping etc ( that might force key to be added or not ).
 
   // test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
   //   const mountedFn = jest.fn();

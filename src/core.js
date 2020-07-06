@@ -38,7 +38,7 @@ export const traverse = curry((config, subtree, nodeResolver) => {
   // Otherwise we would end up with different nodes having different times within the same render cycle.
 
   let resolverRef = null;
-  if (subtree && subtree.__internal) {
+  if (subtree && subtree.__internal && subtree.__internal.owner === nodeResolver.owner) {
     resolverRef = subtree.__internal.resolver;
   }
 
@@ -61,7 +61,7 @@ export const traverse = curry((config, subtree, nodeResolver) => {
     const child = subtree && subtree.children ? subtree.children[0] : undefined;
     return {
       children: [traverse(config, child, node)],
-      __internal: { resolver: resolverRef },
+      __internal: { resolver: resolverRef, owner: nodeResolver.owner },
     };
   } else if (Array.isArray(node)) {
     return {
@@ -70,10 +70,10 @@ export const traverse = curry((config, subtree, nodeResolver) => {
         nr.context = { ...nr.context, ...nodeResolver.context };
         return traverse(config, child, nr);
       }),
-      __internal: { resolver: resolverRef },
+      __internal: { resolver: resolverRef, owner: nodeResolver.owner },
     };
   } else if (node === undefined || node === null) {
-    return { __internal: { resolver: resolverRef } };
+    return { __internal: { resolver: resolverRef, owner: nodeResolver.owner } };
   }
 
   return {
@@ -85,7 +85,7 @@ export const traverse = curry((config, subtree, nodeResolver) => {
           return traverse(config, child, nr);
         })
       : [],
-    __internal: { resolver: resolverRef },
+    __internal: { resolver: resolverRef, owner: nodeResolver.owner },
   };
 });
 
