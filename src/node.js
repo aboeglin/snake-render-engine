@@ -1,16 +1,15 @@
 export const Node = (fn) => {
   const constructor = (props) => {
-    let state = {};
-    const setState = (newState) => {
-      state = newState;
-    };
-
     const resolver = (internalFeatures) =>
       fn(props || {}, {
         ...internalFeatures,
-        state,
-        setState,
+        // state: resolver.state,
+        // setState: makeSetState(resolver),
       });
+
+    // const makeSetState = (resolver) => (newState) => {
+    //   resolver.state = newState;
+    // };
 
     resolver.owner = constructor;
     resolver.context = {};

@@ -445,8 +445,6 @@ describe("core", () => {
 
     start(wrapper);
     start(wrapper);
-    // start(wrapper);
-    // start(wrapper);
 
     expect(unmountedFn).not.toHaveBeenCalled();
   });
@@ -562,19 +560,19 @@ describe("core", () => {
       addEventListener: (type, handler) => {},
     };
 
-    const Wrapper = Node((_, { setState, state, mounted }) => {
+    const Wrapper = Node(() => StateOwner());
+
+    const StateOwner = Node((_, { setState, state, mounted }) => {
       renders = renders + 1;
 
       mounted(() => {
         setState(expected);
       });
 
-      if (renders === 2) {
+      if (renders === 3) {
         expect(state).toEqual(expected);
         done();
       }
-
-      return;
     });
 
     const render = () => {};
@@ -583,31 +581,44 @@ describe("core", () => {
 
     const wrapper = Wrapper();
     start(wrapper);
-    start(wrapper); // state set in render one will only be available on next cycle.
+    // state set in render one will only be available on next cycles.
+    start(wrapper);
+    start(wrapper);
   });
 
-  // test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
-  //   const mountedFn = jest.fn();
+  test.only("state should not be shared for different elements", () => {
+    let renders = 0;
 
-  //   const container = {
-  //     clientHeight: 100,
-  //     addEventListener: (type, handler) => {},
-  //   };
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
 
-  //   const ANode = Node((props, { mounted }) => {
-  //     mounted(mountedFn);
-  //   });
+    const Wrapper = Node(() => [
+      StateOwner({ value: 3 }),
+      StateOwner({ value: 28 }),
+    ]);
 
-  //   const TwoNodes = Node(() => ([
-  //     ANode(),
-  //     ANode(),
-  //   ]));
+    const StateOwner = Node(({ value }, { setState, state, mounted }) => {
+      renders = renders + 1;
 
-  //   const render = () => {};
+      if (renders === 1) {
+        setState(value);
+      }
 
-  //   const start = initWithRenderer(container, render, { clock });
-  //   start(TwoNodes());
+      if (renders === 3) {
+        expect(state).toEqual(value);
+      }
+    });
 
-  //   expect(mountedFn).toHaveBeenCalledTimes(2);
-  // });
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+
+    const wrapper = Wrapper();
+    start(wrapper);
+    // state set in render one will only be available on next cycles.
+    start(wrapper);
+    start(wrapper);
+  });
 });

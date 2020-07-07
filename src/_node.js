@@ -30,24 +30,6 @@ const traverse = nodeFn => {
   const children =
     node.children && node.children.length ? node.children : false;
 
-  // const spaces1 = Array(10 - nodeFn.name.length)
-  //   .fill(" ")
-  //   .join("");
-  // const spaces2 = Array(10 - node.x.toString().length)
-  //   .fill(" ")
-  //   .join("");
-  // const spaces3 = Array(20 - node.text.length)
-  //   .fill(" ")
-  //   .join("");
-
-  // console.log(
-  //   `${nodeFn.name}${spaces1}`,
-  //   `x is: ${node.x}${spaces2}`,
-  //   `text is: ${node.text}${spaces3}`,
-  //   `${node.stuffFromStore}`
-  // );
-  // console.log(node, "\n");
-
   return {
     ...node,
     children: children ? children.map(traverse) : []
