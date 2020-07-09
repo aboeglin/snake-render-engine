@@ -3,6 +3,7 @@ import { replaceRaf } from "raf-stub";
 import { traverse, initWithRenderer } from "./core";
 import { Node } from "./node";
 import { createClock } from "./clock";
+import { createElement } from "./create-element";
 
 replaceRaf([global]);
 const getTime = () => 499;
@@ -551,42 +552,23 @@ describe("core", () => {
     expect(actual).toBe(expected);
   });
 
-  test("nodes should be given a state object and a setState function to interface with state", (done) => {
-    const expected = 1;
-    let renders = 0;
+  /********************************************************************************/
+  /*                           Tests above need rewrite                           */
+  /********************************************************************************/
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
-    };
+  test.skip("traverse should resolve the children correctly", () => {
+    const util = require('util')
 
-    const Wrapper = Node(() => StateOwner());
+    const Parent = ({ stuff }) => createElement(Child, {}, stuff.map(x => createElement(GrandChild, {}, x)));
+    const Child = ({ children }) => children;
+    const GrandChild = ({ children }) => children;
+    const Scene = () => createElement(Parent, { stuff: ["a", "b"]});
 
-    const StateOwner = Node((_, { setState, state, mounted }) => {
-      renders = renders + 1;
-
-      mounted(() => {
-        setState(expected);
-      });
-
-      if (renders === 3) {
-        expect(state).toEqual(expected);
-        done();
-      }
-    });
-
-    const render = () => {};
-
-    const start = initWithRenderer(container, render);
-
-    const wrapper = Wrapper();
-    start(wrapper);
-    // state set in render one will only be available on next cycles.
-    start(wrapper);
-    start(wrapper);
+    const resolved = configuredTraverse(null, createElement(Scene));
+    console.log(util.inspect(resolved, {showHidden: false, depth: null}));
   });
 
-  test.only("state should not be shared for different elements", () => {
+  test("state should not be shared for different elements", () => {
     let renders = 0;
 
     const container = {
@@ -594,12 +576,12 @@ describe("core", () => {
       addEventListener: (type, handler) => {},
     };
 
-    const Wrapper = Node(() => [
-      StateOwner({ value: 3 }),
-      StateOwner({ value: 28 }),
-    ]);
+    const Wrapper = () => [
+      createElement(StateOwner, { value: 3 }, []),
+      createElement(StateOwner, { value: 28 }, []),
+    ];
 
-    const StateOwner = Node(({ value }, { setState, state, mounted }) => {
+    const StateOwner = ({ value }, { setState, state }) => {
       renders = renders + 1;
 
       if (renders === 1) {
@@ -609,13 +591,50 @@ describe("core", () => {
       if (renders === 3) {
         expect(state).toEqual(value);
       }
-    });
+    };
 
     const render = () => {};
 
     const start = initWithRenderer(container, render);
 
-    const wrapper = Wrapper();
+    const wrapper = createElement(Wrapper, {}, []);
+    start(wrapper);
+    // state set in render one will only be available on next cycles.
+    start(wrapper);
+    start(wrapper);
+  });
+
+  test("props should update", () => {
+    let renders = 0;
+
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
+
+    const Wrapper = () => {
+      if (renders < 2) {
+        return createElement(StateOwner, { value: 2 });
+      } else {
+        return createElement(StateOwner, { value: 15 });
+      }
+    };
+
+    const StateOwner = ({ value }) => {
+      renders = renders + 1;
+
+      if (renders < 2) {
+        expect(value).toEqual(2);
+      } else {
+        expect(value).toEqual(15);
+      }
+    };
+
+    const render = () => {};
+
+    const start = initWithRenderer(container, render);
+
+    const wrapper = createElement(Wrapper);
     start(wrapper);
     // state set in render one will only be available on next cycles.
     start(wrapper);
