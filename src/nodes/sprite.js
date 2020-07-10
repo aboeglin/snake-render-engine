@@ -1,6 +1,4 @@
-import { Node } from "../node";
-
-const Sprite = Node((props) => ({
+const Sprite = (props) => ({
   type: "SPRITE",
   x: props.x,
   y: props.y,
@@ -9,6 +7,6 @@ const Sprite = Node((props) => ({
   width: props.width,
   height: props.height,
   children: props.children,
-}));
+});
 
 export default Sprite;

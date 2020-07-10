@@ -1,51 +1,10 @@
-import { contains, curry, forEach, pipe } from "ramda";
+import { curry, pipe } from "ramda";
+import { Node } from "./node";
 import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
 
 const defaultConfig = {
   clock: createClock(Date.now),
-};
-
-const Node = (type) => {
-  let isMounted = false;
-  let unmountedFn = null;
-  let state = null;
-
-  const setState = (newState) => {
-    state = newState;
-  };
-  const getState = () => {
-    return state;
-  };
-
-  const getType = () => type;
-
-  const mounted = (fn) => {
-    console.log("MOUNTED");
-    if (!isMounted) {
-      isMounted = true;
-      fn();
-    }
-  };
-
-  const unmounted = fn => {
-    unmountedFn = fn;
-  }
-
-  const triggerUnmounted = () => {
-    if (unmountedFn) {
-      unmountedFn();
-    }
-  }
-
-  return {
-    setState,
-    getState,
-    getType,
-    mounted,
-    unmounted,
-    triggerUnmounted,
-  };
 };
 
 export const traverse = curry((config, oldNode, newNode) => {
@@ -59,12 +18,14 @@ export const traverse = curry((config, oldNode, newNode) => {
   }
 
   // Compute the children of the newNode
-  newNode.children = newNode._resolve({
-    state: newNode._instance.getState(),
-    setState: newNode._instance.setState,
-    mounted: newNode._instance.mounted,
-    unmounted: newNode._instance.unmounted,
-  }) || [];
+  if (newNode._resolve) {
+    newNode.children = newNode._resolve({
+      state: newNode._instance.getState(),
+      setState: newNode._instance.setState,
+      mounted: newNode._instance.mounted,
+      unmounted: newNode._instance.unmounted,
+    }) || [];
+  }
 
   // We wrap children that are single objects in arrays for consistency
   if (!Array.isArray(newNode.children) && typeof newNode.children === "object") {

@@ -1,7 +1,6 @@
 import { replaceRaf } from "raf-stub";
 
 import { traverse, initWithRenderer } from "./core";
-import { Node } from "./node";
 import { createClock } from "./clock";
 import { createElement } from "./create-element";
 
@@ -26,71 +25,61 @@ describe("core", () => {
     expect(typeof traverse).toBe("function");
   });
 
-  // test("traverse should resolve the node given", () => {
-  //   const SomeNode = Node(() => {});
-  //   const node = jest.fn(SomeNode({}));
-  //   configuredTraverse(null, node);
-  //   expect(node.mock.calls.length).toBe(1);
-  // });
+  test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
+    const Scene = () => [
+      createElement(Rect, { x: 2, y: 3 }),
+      createElement(Rect, { x: 5, y: 7 }),
+    ];
+    const Rect = (props) => ({
+      x: props.x,
+      y: props.y,
+    });
 
-  // test("traverse should return a tree of resolved nodes", () => {
-  //   const expected = {
-  //     __internal: expect.anything(),
-  //     children: [
-  //       {
-  //         __internal: expect.anything(),
-  //         children: [
-  //           {
-  //             __internal: expect.anything(),
-  //             x: 2,
-  //             y: 3,
-  //             children: [],
-  //           },
-  //           {
-  //             __internal: expect.anything(),
-  //             x: 5,
-  //             y: 7,
-  //             children: [],
-  //           },
-  //         ],
-  //       },
-  //     ],
-  //   };
+    const expected = {
+      type: Scene,
+      _instance: expect.anything(),
+      _resolve: expect.anything(),
+      props: {},
+      children: [
+        {
+          type: Rect,
+          _instance: expect.anything(),
+          _resolve: expect.anything(),
+          props: {
+            x: 2,
+            y: 3,
+          },
+          children: [
+            {
+              _instance: expect.anything(),
+              x: 2,
+              y: 3,
+            },
+          ],
+        },
+        {
+          type: Rect,
+          _instance: expect.anything(),
+          _resolve: expect.anything(),
+          props: {
+            x: 5,
+            y: 7,
+          },
+          children: [
+            {
+              _instance: expect.anything(),
+              x: 5,
+              y: 7,
+            },
+          ],
+        },
+      ],
+    };
 
-  //   const scene = Scene();
-  //   const tree = configuredTraverse(null, scene);
-  //   expect(tree).toEqual(expected);
-  // });
-
-  // test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
-  //   const Scene = Node(() => [Rect({ x: 2, y: 3 }), Rect({ x: 5, y: 7 })]);
-  //   const Rect = Node((props) => ({
-  //     x: props.x,
-  //     y: props.y,
-  //   }));
-
-  //   const expected = {
-  //     __internal: expect.anything(),
-  //     children: [
-  //       {
-  //         __internal: expect.anything(),
-  //         x: 2,
-  //         y: 3,
-  //         children: [],
-  //       },
-  //       {
-  //         __internal: expect.anything(),
-  //         x: 5,
-  //         y: 7,
-  //         children: [],
-  //       },
-  //     ],
-  //   };
-
-  //   const scene = Scene();
-  //   const tree = configuredTraverse(null, scene);
-  //   expect(tree).toEqual(expected);
-  // });
+    const scene = createElement(Scene);
+    const tree = configuredTraverse(null, scene);
+    expect(tree).toEqual(expected);
+  });
 
   test("It should export an initWithRenderer function", () => {
     expect(typeof initWithRenderer).toBe("function");
@@ -192,49 +181,49 @@ describe("core", () => {
   //   expect(render).toHaveBeenCalledWith(expected);
   // });
 
-  // test("initWithRenderer should register event handlers", () => {
-  //   const container = {
-  //     addEventListener: jest.fn(),
-  //   };
+  test("initWithRenderer should register event handlers", () => {
+    const container = {
+      addEventListener: jest.fn(),
+    };
 
-  //   const render = () => {};
+    const render = () => {};
 
-  //   initWithRenderer(container, render);
+    initWithRenderer(container, render);
 
-  //   expect(container.addEventListener).toHaveBeenCalledWith(
-  //     "click",
-  //     expect.any(Function)
-  //   );
-  // });
+    expect(container.addEventListener).toHaveBeenCalledWith(
+      "click",
+      expect.any(Function)
+    );
+  });
 
-  // test("initWithRenderer should wire event handlers after start", () => {
-  //   let click = null;
-  //   const expected = jest.fn();
+  test("initWithRenderer should wire event handlers after start", () => {
+    let click = null;
+    const expected = jest.fn();
 
-  //   const ANode = Node((props, { time }) => ({
-  //     onClick: expected,
-  //     x: 5,
-  //     y: 5,
-  //     width: 10,
-  //     height: 10,
-  //   }));
+    const ANode = (props) => ({
+      onClick: expected,
+      x: 5,
+      y: 5,
+      width: 10,
+      height: 10,
+    });
 
-  //   const container = {
-  //     clientHeight: 100,
-  //     addEventListener: (type, handler) => {
-  //       click = handler;
-  //     },
-  //   };
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {
+        click = handler;
+      },
+    };
 
-  //   const render = () => {};
+    const render = () => {};
 
-  //   const start = initWithRenderer(container, render);
-  //   start(ANode());
+    const start = initWithRenderer(container, render);
+    start(createElement(ANode));
 
-  //   click({ offsetX: 10, offsetY: 90, type: "click" });
+    click({ offsetX: 10, offsetY: 90, type: "click" });
 
-  //   expect(expected).toHaveBeenCalled();
-  // });
+    expect(expected).toHaveBeenCalled();
+  });
 
   test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
     // Check this test again, not sure it does what it should.
@@ -391,30 +380,30 @@ describe("core", () => {
     expect(unmountedFn).toHaveBeenCalledTimes(1);
   });
 
-  // test("unmounted should not be called if the node is still being rendered", () => {
-  //   const unmountedFn = jest.fn();
+  test("unmounted should not be called if the node is still being rendered", () => {
+    const unmountedFn = jest.fn();
 
-  //   const container = {
-  //     clientHeight: 100,
-  //     addEventListener: (type, handler) => {},
-  //   };
+    const container = {
+      clientHeight: 100,
+      addEventListener: (type, handler) => {},
+    };
 
-  //   const Wrapper = Node((props) => ANode());
+    const Wrapper = (props) => createElement(ANode);
 
-  //   const ANode = Node((props, { unmounted }) => {
-  //     unmounted(unmountedFn);
-  //   });
+    const ANode = (props, { unmounted }) => {
+      unmounted(unmountedFn);
+    };
 
-  //   const render = () => {};
+    const render = () => {};
 
-  //   const start = initWithRenderer(container, render);
-  //   const wrapper = Wrapper({ show: true });
+    const start = initWithRenderer(container, render);
+    const wrapper = createElement(Wrapper, { show: true });
 
-  //   start(wrapper);
-  //   start(wrapper);
+    start(wrapper);
+    start(wrapper);
 
-  //   expect(unmountedFn).not.toHaveBeenCalled();
-  // });
+    expect(unmountedFn).not.toHaveBeenCalled();
+  });
 
   // test("traverse should provide a setContext function to set data in context", () => {
   //   const expected = 1;
@@ -517,10 +506,6 @@ describe("core", () => {
 
   //   expect(actual).toBe(expected);
   // });
-
-  /********************************************************************************/
-  /*                           Tests above need rewrite                           */
-  /********************************************************************************/
 
   test("traverse should resolve the children correctly", () => {
     const Parent = ({ stuff }) =>

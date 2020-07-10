@@ -2,7 +2,7 @@ import { Node } from "./node";
 
 const time = 1;
 
-describe("Node", () => {
+describe.skip("Node", () => {
   test("It should have a Node function", () => {
     expect(typeof Node).toBe("function");
   });
