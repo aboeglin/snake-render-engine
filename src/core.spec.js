@@ -1,6 +1,6 @@
 import { replaceRaf } from "raf-stub";
 
-import { traverse, initWithRenderer } from "./core";
+import { reconcile, initWithRenderer } from "./core";
 import { createClock } from "./clock";
 import { createElement } from "./create-element";
 
@@ -12,27 +12,27 @@ const lifecycles = {
   unmounted: () => {},
   __getResolvers: () => ({
     mountedResolvers: [],
-    unmountedResolvers: [],
+    unmountedResolvers: []
   }),
-  __reset: () => {},
+  __reset: () => {}
 };
 const config = { clock, lifecycles };
 
-const configuredTraverse = traverse(config);
+const configuredTraverse = reconcile(config);
 
 describe("core", () => {
   test("It should export a traverse function", () => {
-    expect(typeof traverse).toBe("function");
+    expect(typeof reconcile).toBe("function");
   });
 
   test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
     const Scene = () => [
       createElement(Rect, { x: 2, y: 3 }),
-      createElement(Rect, { x: 5, y: 7 }),
+      createElement(Rect, { x: 5, y: 7 })
     ];
-    const Rect = (props) => ({
+    const Rect = props => ({
       x: props.x,
-      y: props.y,
+      y: props.y
     });
 
     const expected = {
@@ -43,35 +43,35 @@ describe("core", () => {
           type: Rect,
           props: {
             x: 2,
-            y: 3,
+            y: 3
           },
           children: [
             {
               children: [],
               x: 2,
-              y: 3,
-            },
-          ],
+              y: 3
+            }
+          ]
         },
         {
           type: Rect,
           props: {
             x: 5,
-            y: 7,
+            y: 7
           },
           children: [
             {
               children: [],
               x: 5,
-              y: 7,
-            },
-          ],
-        },
-      ],
+              y: 7
+            }
+          ]
+        }
+      ]
     };
 
     const scene = createElement(Scene);
-    const tree = configuredTraverse(null, scene, {});
+    const tree = configuredTraverse(scene, {});
     expect(tree).toEqual(expected);
   });
 
@@ -79,105 +79,9 @@ describe("core", () => {
     expect(typeof initWithRenderer).toBe("function");
   });
 
-  // test("initWithRenderer should accept a renderer function called with the renderer node tree", (done) => {
-  //   const expected = {
-  //     __internal: expect.anything(),
-  //     children: [
-  //       {
-  //         __internal: expect.anything(),
-  //         children: [
-  //           {
-  //             __internal: expect.anything(),
-  //             x: 2,
-  //             y: 3,
-  //             children: [],
-  //           },
-  //           {
-  //             __internal: expect.anything(),
-  //             x: 5,
-  //             y: 7,
-  //             children: [],
-  //           },
-  //         ],
-  //       },
-  //     ],
-  //   };
-  //   const renderer = (tree) => {
-  //     expect(tree).toEqual(expected);
-  //     done();
-  //   };
-
-  //   const container = {
-  //     addEventListener: jest.fn(),
-  //   };
-
-  //   const start = initWithRenderer(container, renderer, config);
-  //   start(Scene());
-  // });
-
-  // test("initWithRenderer should accept a renderer function called with the renderer node tree on every requestAnimationFrame", () => {
-  //   const expected = {
-  //     __internal: expect.anything(),
-  //     children: [
-  //       {
-  //         __internal: expect.anything(),
-  //         children: [
-  //           {
-  //             __internal: expect.anything(),
-  //             x: 2,
-  //             y: 3,
-  //             children: [],
-  //           },
-  //           {
-  //             __internal: expect.anything(),
-  //             x: 5,
-  //             y: 7,
-  //             children: [],
-  //           },
-  //         ],
-  //       },
-  //     ],
-  //   };
-  //   const renderer = jest.fn();
-
-  //   const container = {
-  //     addEventListener: jest.fn(),
-  //   };
-
-  //   const start = initWithRenderer(container, renderer, config);
-  //   start(Scene());
-
-  //   requestAnimationFrame.step();
-
-  //   expect(renderer).toHaveBeenNthCalledWith(2, expected);
-  // });
-
-  // test("initWithRenderer should initialize a clock and give time to render functions", () => {
-  //   const expected = {
-  //     __internal: expect.anything(),
-  //     time: 500,
-  //     children: [],
-  //   };
-
-  //   const ANode = Node((props, { time }) => ({
-  //     time,
-  //   }));
-
-  //   const render = jest.fn();
-
-  //   const container = {
-  //     addEventListener: jest.fn(),
-  //   };
-
-  //   const start = initWithRenderer(container, render, config);
-  //   start(ANode());
-
-  //   expect(render).toHaveBeenCalledWith(expected);
-  // });
-
   test("initWithRenderer should register event handlers", () => {
     const container = {
-      addEventListener: jest.fn(),
+      addEventListener: jest.fn()
     };
 
     const render = () => {};
@@ -194,19 +98,19 @@ describe("core", () => {
     let click = null;
     const expected = jest.fn();
 
-    const ANode = (props) => ({
+    const ANode = props => ({
       onClick: expected,
       x: 5,
       y: 5,
       width: 10,
-      height: 10,
+      height: 10
     });
 
     const container = {
       clientHeight: 100,
       addEventListener: (type, handler) => {
         click = handler;
-      },
+      }
     };
 
     const render = () => {};
@@ -225,7 +129,7 @@ describe("core", () => {
 
     const container = {
       clientHeight: 100,
-      addEventListener: (type, handler) => {},
+      addEventListener: (type, handler) => {}
     };
 
     const ANode = (props, { mounted }) => {
@@ -249,7 +153,7 @@ describe("core", () => {
 
     const container = {
       clientHeight: 100,
-      addEventListener: (type, handler) => {},
+      addEventListener: (type, handler) => {}
     };
 
     const ANode = (props, { mounted }) => {
@@ -275,7 +179,7 @@ describe("core", () => {
 
     const container = {
       clientHeight: 100,
-      addEventListener: (type, handler) => {},
+      addEventListener: (type, handler) => {}
     };
 
     const ANode = (props, { mounted }) => {
@@ -302,7 +206,7 @@ describe("core", () => {
 
     const container = {
       clientHeight: 100,
-      addEventListener: (type, handler) => {},
+      addEventListener: (type, handler) => {}
     };
 
     const Parent = () => {
@@ -341,20 +245,25 @@ describe("core", () => {
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
   });
 
-  test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
-    // Doesn't work, we need to do tree diff in order to resolve instances of nodes.
-    const unmountedFn = jest.fn();
-    let renders = 0;
+  test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", done => {
+    const unmountedFn = jest.fn(() => {
+      done();
+    });
 
     const container = {
       clientHeight: 100,
-      addEventListener: (type, handler) => {},
+      addEventListener: (type, handler) => {}
     };
 
-    const ANode = () => {
-      renders = renders + 1;
+    const ANode = (_, { mounted, setState, state = { child: true } }) => {
+      if (!state) {
+        state = { child: true };
+      }
+      mounted(() => {
+        setState({ child: false });
+      });
 
-      return renders > 1 ? null : createElement(WillUnmount);
+      return state.child ? createElement(WillUnmount) : null;
     };
 
     const Wrapper = () => createElement(ANode);
@@ -369,9 +278,6 @@ describe("core", () => {
     const wrapper = createElement(Wrapper);
     start(wrapper);
     expect(unmountedFn).toHaveBeenCalledTimes(0);
-    start(wrapper);
-
-    expect(unmountedFn).toHaveBeenCalledTimes(1);
   });
 
   test("unmounted should not be called if the node is still being rendered", () => {
@@ -379,10 +285,10 @@ describe("core", () => {
 
     const container = {
       clientHeight: 100,
-      addEventListener: (type, handler) => {},
+      addEventListener: (type, handler) => {}
     };
 
-    const Wrapper = (props) => createElement(ANode);
+    const Wrapper = props => createElement(ANode);
 
     const ANode = (props, { unmounted }) => {
       unmounted(unmountedFn);
@@ -399,114 +305,12 @@ describe("core", () => {
     expect(unmountedFn).not.toHaveBeenCalled();
   });
 
-  // test("traverse should provide a setContext function to set data in context", () => {
-  //   const expected = 1;
-
-  //   const container = {
-  //     clientHeight: 100,
-  //     addEventListener: (type, handler) => {},
-  //   };
-
-  //   const Wrapper = Node((_, { setContext }) => {
-  //     setContext("stuff", expected);
-
-  //     return ANode();
-  //   });
-
-  //   const ANode = Node((_, { getContext }) => {
-  //     expect(getContext("stuff")).toBe(expected);
-  //   });
-
-  //   const render = () => {};
-
-  //   const start = initWithRenderer(container, render);
-  //   start(Wrapper());
-  // });
-
-  // test("context should also be available for array children", () => {
-  //   const expected = 1;
-
-  //   const container = {
-  //     clientHeight: 100,
-  //     addEventListener: (type, handler) => {},
-  //   };
-
-  //   const Wrapper = Node((_, { setContext }) => {
-  //     setContext("stuff", expected);
-
-  //     return { children: [ANode()] };
-  //   });
-
-  //   const ANode = Node((_, { getContext }) => {
-  //     expect(getContext("stuff")).toBe(expected);
-  //   });
-
-  //   const render = () => {};
-
-  //   const start = initWithRenderer(container, render);
-  //   start(Wrapper());
-  // });
-
-  // test("context should also be available for array nodes", () => {
-  //   const expected = 1;
-
-  //   const container = {
-  //     clientHeight: 100,
-  //     addEventListener: (type, handler) => {},
-  //   };
-
-  //   const Wrapper = Node((_, { setContext }) => {
-  //     setContext("stuff", expected);
-
-  //     return [ANode()];
-  //   });
-
-  //   const ANode = Node((_, { getContext }) => {
-  //     expect(getContext("stuff")).toBe(expected);
-  //   });
-
-  //   const render = () => {};
-
-  //   const start = initWithRenderer(container, render);
-  //   start(Wrapper());
-  // });
-
-  // test("context should remain accross re-renders", () => {
-  //   const expected = 1;
-  //   let actual = null;
-
-  //   const container = {
-  //     clientHeight: 100,
-  //     addEventListener: (type, handler) => {},
-  //   };
-
-  //   const Wrapper = Node((_, { setContext, mounted }) => {
-  //     mounted(() => setContext("stuff", expected));
-  //     return [ANode()];
-  //   });
-
-  //   const ANode = Node((_, { getContext }) => {
-  //     actual = getContext("stuff");
-  //   });
-
-  //   const render = () => {};
-
-  //   const start = initWithRenderer(container, render);
-
-  //   const wrapper = Wrapper();
-  //   start(wrapper);
-  //   start(wrapper);
-  //   start(wrapper);
-
-  //   expect(actual).toBe(expected);
-  // });
-
   test("traverse should resolve the children correctly", () => {
     const Parent = ({ stuff }) =>
       createElement(
         Child,
         {},
-        stuff.map((x) => createElement(GrandChild, {}, x))
+        stuff.map(x => createElement(GrandChild, {}, x))
       );
     const Child = ({ children }) => children;
     const GrandChild = ({ children }) => children;
@@ -527,21 +331,21 @@ describe("core", () => {
                 {
                   type: GrandChild,
                   props: {},
-                  children: "a",
+                  children: "a"
                 },
                 {
                   type: GrandChild,
                   props: {},
-                  children: "b",
-                },
-              ],
-            },
-          ],
-        },
-      ],
+                  children: "b"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     };
 
-    const actual = configuredTraverse(null, createElement(Scene));
+    const actual = configuredTraverse(createElement(Scene));
     expect(actual).toEqual(expected);
   });
 
@@ -550,20 +354,20 @@ describe("core", () => {
 
     const container = {
       clientHeight: 100,
-      addEventListener: (type, handler) => {},
+      addEventListener: (type, handler) => {}
     };
 
     const Wrapper = () => [
       createElement(StateOwner, { value: 3 }, []),
-      createElement(StateOwner, { value: 28 }, []),
+      createElement(StateOwner, { value: 28 }, [])
     ];
 
-    const StateOwner = ({ value }, { setState, state }) => {
+    const StateOwner = ({ value }, { setState, state, mounted }) => {
       renders = renders + 1;
 
-      if (renders === 1) {
+      mounted(() => {
         setState(value);
-      }
+      });
 
       if (renders === 3) {
         expect(state).toEqual(value);
@@ -576,9 +380,6 @@ describe("core", () => {
 
     const wrapper = createElement(Wrapper, {}, []);
     start(wrapper);
-    // state set in render one will only be available on next cycles.
-    start(wrapper);
-    start(wrapper);
   });
 
   test("props should update", () => {
@@ -586,7 +387,7 @@ describe("core", () => {
 
     const container = {
       clientHeight: 100,
-      addEventListener: (type, handler) => {},
+      addEventListener: (type, handler) => {}
     };
 
     const Wrapper = () => {
@@ -616,5 +417,50 @@ describe("core", () => {
     start(wrapper);
     start(wrapper);
     start(wrapper);
+  });
+
+  test("setState should trigger a tree update", done => {
+    let actual = null;
+
+    const Wrapper = () => createElement(StateDude);
+
+    const StateDude = (_, { setState, mounted, state }) => {
+      mounted(() => setState({ mounted: true }));
+
+      return createElement(Child, { mounted: state ? state.mounted : false });
+    };
+
+    const Child = ({ mounted }) => {
+      if (mounted) {
+        setTimeout(() => {
+          const expected = {
+            type: Wrapper,
+            props: {},
+            children: [
+              {
+                type: StateDude,
+                props: {},
+                children: [
+                  {
+                    type: Child,
+                    props: { mounted: true },
+                    children: [{ mounted: true, children: [] }],
+                    key: undefined
+                  }
+                ],
+                key: undefined
+              }
+            ],
+            key: undefined
+          };
+          expect(actual).toEqual(expected);
+          done();
+        }, 300);
+      }
+      return { mounted };
+    };
+
+    const wrapper = createElement(Wrapper);
+    actual = configuredTraverse(wrapper);
   });
 });
