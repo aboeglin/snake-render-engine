@@ -9,18 +9,22 @@ const defaultConfig = {
 
 export const traverse = curry((config, oldNode, newNode) => {
   // Retrieve or create node instance
+  let instance;
   if (oldNode && oldNode._instance && oldNode.type === newNode.type) {
-    const i = oldNode._instance;
-    newNode._instance = i;
+    instance = oldNode._instance;
   } else {
-    const i = Node(newNode);
-    newNode._instance = i;
+    instance = Node(newNode.type);
   }
 
+  Object.defineProperty(newNode, "_instance", {
+    value: instance,
+    configurable: true,
+  });
+
   // Compute the children of the newNode
-  if (newNode._resolve) {
+  if (newNode && instance.render) {
     newNode.children =
-      newNode.type(
+      instance.render(
         { ...newNode.props, children: newNode.children },
         {
           state: newNode._instance.getState(),
@@ -29,6 +33,9 @@ export const traverse = curry((config, oldNode, newNode) => {
           unmounted: newNode._instance.unmounted,
         }
       ) || [];
+  }
+  else {
+    newNode.children = [];
   }
 
   // We wrap children that are single objects in arrays for consistency
@@ -43,6 +50,7 @@ export const traverse = curry((config, oldNode, newNode) => {
   if (oldNode) {
     oldNode.children.forEach((oldChild, i) => {
       const newChild = newNode.children[i];
+
       if (
         (oldChild && !newChild) ||
         (newChild && newChild.type !== oldChild.type)
@@ -52,12 +60,13 @@ export const traverse = curry((config, oldNode, newNode) => {
     });
   }
 
-  if (Array.isArray(newNode.children)) {
+  if (Array.isArray(newNode.children) && newNode.children.length > 0) {
     // Arrays will definitely need some special attention !
     return {
       ...newNode,
       children: newNode.children.map((n, i) => {
-        return traverse(config, oldNode && oldNode.children[i], n);
+        const oldChild = oldNode ? oldNode.children[i] : null;
+        return traverse(config, oldChild, n);
       }),
     };
   }
@@ -74,8 +83,8 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
     (event) => handleEvent(event, tree)
   );
 
-  const start = (nodeElement) => {
-    tree = traverse(config, tree, nodeElement);
+  const start = (newTree) => {
+    tree = traverse(config, tree, newTree);
 
     render(tree);
     requestAnimationFrame(() => start(nodeElement));

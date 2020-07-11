@@ -3,6 +3,5 @@ export const createElement = (type, props = {}, children = []) => {
     type,
     props,
     children,
-    _resolve: (features) => type({ ...props, children }, features),
   };
 };

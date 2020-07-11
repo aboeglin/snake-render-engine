@@ -37,21 +37,17 @@ describe("core", () => {
 
     const expected = {
       type: Scene,
-      _instance: expect.anything(),
-      _resolve: expect.anything(),
       props: {},
       children: [
         {
           type: Rect,
-          _instance: expect.anything(),
-          _resolve: expect.anything(),
           props: {
             x: 2,
             y: 3,
           },
           children: [
             {
-              _instance: expect.anything(),
+              children: [],
               x: 2,
               y: 3,
             },
@@ -59,15 +55,13 @@ describe("core", () => {
         },
         {
           type: Rect,
-          _instance: expect.anything(),
-          _resolve: expect.anything(),
           props: {
             x: 5,
             y: 7,
           },
           children: [
             {
-              _instance: expect.anything(),
+              children: [],
               x: 5,
               y: 7,
             },
@@ -77,7 +71,7 @@ describe("core", () => {
     };
 
     const scene = createElement(Scene);
-    const tree = configuredTraverse(null, scene);
+    const tree = configuredTraverse(null, scene, {});
     expect(tree).toEqual(expected);
   });
 
@@ -518,9 +512,6 @@ describe("core", () => {
     const GrandChild = ({ children }) => children;
     const Scene = () => createElement(Parent, { stuff: ["a", "b"] });
 
-    const util = require("util");
-    console.log(util.inspect(createElement(Scene), { depth: null }));
-
     const expected = {
       type: Scene,
       props: {},
@@ -537,31 +528,20 @@ describe("core", () => {
                   type: GrandChild,
                   props: {},
                   children: "a",
-                  _resolve: expect.any(Function),
-                  _instance: expect.any(Object),
                 },
                 {
                   type: GrandChild,
                   props: {},
                   children: "b",
-                  _resolve: expect.any(Function),
-                  _instance: expect.any(Object),
                 },
               ],
-              _resolve: expect.any(Function),
-              _instance: expect.any(Object),
             },
           ],
-          _resolve: expect.any(Function),
-          _instance: expect.any(Object),
         },
       ],
-      _resolve: expect.any(Function),
-      _instance: expect.any(Object),
     };
 
     const actual = configuredTraverse(null, createElement(Scene));
-
     expect(actual).toEqual(expected);
   });
 

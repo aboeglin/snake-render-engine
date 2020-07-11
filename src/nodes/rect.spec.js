@@ -18,10 +18,8 @@ describe("Rect", () => {
     expect(typeof Rect).toBe("function");
   });
 
-  test("The Rect function should build a rect js object", () => {
+  test.only("The Rect function should build a rect js object", () => {
     const expected = {
-      _resolve: expect.anything(),
-      _instance: expect.anything(),
       type: Rect,
       props: {
         x: 0,
@@ -40,7 +38,6 @@ describe("Rect", () => {
           height: 5,
           onClick: undefined,
           children: [],
-          _instance: expect.anything(),
         },
       ],
     };
@@ -53,7 +50,7 @@ describe("Rect", () => {
         z: 0,
         width: 5,
         height: 5,
-      })
+      }),
     );
 
     expect(actual).toEqual(expected);
@@ -61,8 +58,6 @@ describe("Rect", () => {
 
   test("The Rect function should take children", () => {
     const expected = {
-      _resolve: expect.anything(),
-      _instance: expect.anything(),
       type: Rect,
       props: {
         x: 0,
@@ -73,7 +68,6 @@ describe("Rect", () => {
       },
       children: [
         {
-          _instance: expect.anything(),
           type: "RECT",
           x: 0,
           y: 0,
@@ -83,8 +77,6 @@ describe("Rect", () => {
           onClick: undefined,
           children: [
             {
-              _resolve: expect.anything(),
-              _instance: expect.anything(),
               type: Rect,
               props: {
                 x: 0,
@@ -95,7 +87,6 @@ describe("Rect", () => {
               },
               children: [
                 {
-                  _instance: expect.anything(),
                   type: "RECT",
                   x: 0,
                   y: 0,
@@ -140,8 +131,6 @@ describe("Rect", () => {
       });
 
       const expected = {
-        _resolve: expect.anything(),
-        _instance: expect.anything(),
         type: CustomNode,
         props: {
           x: 2,
@@ -152,8 +141,6 @@ describe("Rect", () => {
         },
         children: [
           {
-            _resolve: expect.anything(),
-            _instance: expect.anything(),
             type: Rect,
             props: {
               x: 1,
@@ -164,7 +151,6 @@ describe("Rect", () => {
             },
             children: [
               {
-                _instance: expect.anything(),
                 type: "RECT",
                 x: 1,
                 y: 1,

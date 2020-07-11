@@ -3,6 +3,10 @@ export const Node = (type) => {
   let unmountedFn = null;
   let state = null;
 
+  // Later to do diff, initial oldProps = {} before first render.
+  let oldProps;
+  let props;
+
   const setState = (newState) => {
     state = newState;
   };
@@ -36,5 +40,6 @@ export const Node = (type) => {
     mounted,
     unmounted,
     triggerUnmounted,
+    render: typeof type === "function" ? type : null,
   };
 };

@@ -20,8 +20,6 @@ describe("Sprite", () => {
 
   test("The Sprite function should build a sprite js object", () => {
     const expected = {
-      _resolve: expect.anything(),
-      _instance: expect.anything(),
       type: Sprite,
       props: {
         x: 0,
@@ -37,7 +35,6 @@ describe("Sprite", () => {
       },
       children: [
         {
-          _instance: expect.anything(),
           type: "SPRITE",
           x: 0,
           y: 0,

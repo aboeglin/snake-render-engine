@@ -6,7 +6,6 @@ const Rect = (props) => ({
   width: props.width,
   height: props.height,
   onClick: props.onClick, // Must be tested
-  children: props.children,
 });
 
 export default Rect;
