@@ -342,7 +342,6 @@ describe("core", () => {
   });
 
   test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
-    // Doesn't work, we need to do tree diff in order to resolve instances of nodes.
     const unmountedFn = jest.fn();
     let renders = 0;
 
@@ -353,6 +352,7 @@ describe("core", () => {
 
     const ANode = () => {
       renders = renders + 1;
+      console.log(renders);
 
       return renders > 1 ? null : createElement(WillUnmount);
     };
@@ -616,5 +616,31 @@ describe("core", () => {
     start(wrapper);
     start(wrapper);
     start(wrapper);
+  });
+
+  test("setState should trigger a tree update", (done) => {
+    const util = require("util");
+    let tree = null;
+
+    const Wrapper = () => createElement(StateDude);
+
+    const StateDude = (_, { setState, mounted, state }) => {
+      mounted(() => setState({ mounted: true }));
+
+      return createElement(Child, { mounted: state ? state.mounted : false });
+    };
+
+    const Child = ({ mounted }) => {
+      if (mounted) {
+        setTimeout(() => {
+          console.log(util.inspect(tree, { depth: null }));
+          done();
+        }, 300);
+      }
+      return { mounted };
+    };
+
+    const wrapper = createElement(Wrapper);
+    tree = configuredTraverse(null, wrapper);
   });
 });

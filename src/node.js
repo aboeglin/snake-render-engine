@@ -1,7 +1,10 @@
-export const Node = (type) => {
+import { traverse } from "./core";
+
+export const Node = (vnode) => {
   let isMounted = false;
   let unmountedFn = null;
   let state = null;
+  let _vnode = vnode;
 
   // Later to do diff, initial oldProps = {} before first render.
   let oldProps;
@@ -9,6 +12,14 @@ export const Node = (type) => {
 
   const setState = (newState) => {
     state = newState;
+
+    setTimeout(() => {
+      traverse(
+        {},
+        _vnode,
+        _vnode,
+      );
+    }, 200);
   };
   const getState = () => {
     return state;
@@ -23,15 +34,21 @@ export const Node = (type) => {
     }
   };
 
-  const unmounted = fn => {
+  const unmounted = (fn) => {
     unmountedFn = fn;
-  }
+  };
 
   const triggerUnmounted = () => {
     if (unmountedFn) {
       unmountedFn();
     }
-  }
+  };
+
+  const setVNode = (vnode) => {
+    _vnode = vnode;
+  };
+
+  const getVNode = () => _vnode;
 
   return {
     setState,
@@ -40,6 +57,8 @@ export const Node = (type) => {
     mounted,
     unmounted,
     triggerUnmounted,
-    render: typeof type === "function" ? type : null,
+    render: typeof vnode.type === "function" ? vnode.type : null,
+    setVNode,
+    getVNode,
   };
 };

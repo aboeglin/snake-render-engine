@@ -9,17 +9,27 @@ const defaultConfig = {
 
 export const traverse = curry((config, oldNode, newNode) => {
   // Retrieve or create node instance
+
+  // We need that copy for the unmount, otherwise the tree is already mutated and we can't diff it anymore.
+  const oldChildren = oldNode ? [...oldNode.children] : null;
+
   let instance;
-  if (oldNode && oldNode._instance && oldNode.type === newNode.type) {
+  if (
+    oldNode &&
+    oldNode.hasOwnProperty("_instance") &&
+    oldNode.type === newNode.type
+  ) {
     instance = oldNode._instance;
+    instance.setVNode(newNode);
   } else {
-    instance = Node(newNode.type);
+    instance = Node(newNode);
   }
 
   Object.defineProperty(newNode, "_instance", {
     value: instance,
     configurable: true,
   });
+
 
   // Compute the children of the newNode
   if (newNode && instance.render) {
@@ -33,8 +43,7 @@ export const traverse = curry((config, oldNode, newNode) => {
           unmounted: newNode._instance.unmounted,
         }
       ) || [];
-  }
-  else {
+  } else {
     newNode.children = [];
   }
 
@@ -47,10 +56,9 @@ export const traverse = curry((config, oldNode, newNode) => {
   }
 
   // Check for unmounted
-  if (oldNode) {
-    oldNode.children.forEach((oldChild, i) => {
+  if (oldChildren) {
+    oldChildren.forEach((oldChild, i) => {
       const newChild = newNode.children[i];
-
       if (
         (oldChild && !newChild) ||
         (newChild && newChild.type !== oldChild.type)
@@ -62,13 +70,11 @@ export const traverse = curry((config, oldNode, newNode) => {
 
   if (Array.isArray(newNode.children) && newNode.children.length > 0) {
     // Arrays will definitely need some special attention !
-    return {
-      ...newNode,
-      children: newNode.children.map((n, i) => {
-        const oldChild = oldNode ? oldNode.children[i] : null;
-        return traverse(config, oldChild, n);
-      }),
-    };
+    newNode.children = newNode.children.map((n, i) => {
+      const oldChild = oldNode ? oldChildren[i] : null;
+      return traverse(config, oldChild, n);
+    });
+    return newNode;
   }
 
   return newNode;
@@ -86,8 +92,8 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
   const start = (newTree) => {
     tree = traverse(config, tree, newTree);
 
-    render(tree);
-    requestAnimationFrame(() => start(nodeElement));
+    // render(tree);
+    // requestAnimationFrame(() => start(nodeElement));
   };
 
   container.addEventListener("click", wireEvent);
