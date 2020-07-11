@@ -19,16 +19,23 @@ export const traverse = curry((config, oldNode, newNode) => {
 
   // Compute the children of the newNode
   if (newNode._resolve) {
-    newNode.children = newNode._resolve({
-      state: newNode._instance.getState(),
-      setState: newNode._instance.setState,
-      mounted: newNode._instance.mounted,
-      unmounted: newNode._instance.unmounted,
-    }) || [];
+    newNode.children =
+      newNode.type(
+        { ...newNode.props, children: newNode.children },
+        {
+          state: newNode._instance.getState(),
+          setState: newNode._instance.setState,
+          mounted: newNode._instance.mounted,
+          unmounted: newNode._instance.unmounted,
+        }
+      ) || [];
   }
 
   // We wrap children that are single objects in arrays for consistency
-  if (!Array.isArray(newNode.children) && typeof newNode.children === "object") {
+  if (
+    !Array.isArray(newNode.children) &&
+    typeof newNode.children === "object"
+  ) {
     newNode.children = [newNode.children];
   }
 
@@ -36,7 +43,10 @@ export const traverse = curry((config, oldNode, newNode) => {
   if (oldNode) {
     oldNode.children.forEach((oldChild, i) => {
       const newChild = newNode.children[i];
-      if (oldChild && !newChild || newChild && newChild.type !== oldChild.type) {
+      if (
+        (oldChild && !newChild) ||
+        (newChild && newChild.type !== oldChild.type)
+      ) {
         oldChild._instance.triggerUnmounted();
       }
     });

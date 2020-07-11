@@ -518,6 +518,9 @@ describe("core", () => {
     const GrandChild = ({ children }) => children;
     const Scene = () => createElement(Parent, { stuff: ["a", "b"] });
 
+    const util = require("util");
+    console.log(util.inspect(createElement(Scene), { depth: null }));
+
     const expected = {
       type: Scene,
       props: {},

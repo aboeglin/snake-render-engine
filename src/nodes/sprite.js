@@ -1,3 +1,4 @@
+// TODO: Should add events ?
 const Sprite = (props) => ({
   type: "SPRITE",
   x: props.x,
