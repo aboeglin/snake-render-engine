@@ -1,5 +1,5 @@
 import { curry, pipe } from "ramda";
-import { Node } from "./node";
+import { Spark } from "./spark";
 import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
 
@@ -7,58 +7,96 @@ const defaultConfig = {
   clock: createClock(Date.now),
 };
 
-export const traverse = curry((config, oldNode, newNode) => {
-  // Retrieve or create node instance
+const throttle = curry((delay, fn) => {
+  let timeout = null;
+  return (...args) => {
+    if (!timeout) {
+      timeout = setTimeout(() => {
+        fn(...args);
+        timeout = null;
+      }, delay);
+    }
+  };
+});
 
-  // We need that copy for the unmount, otherwise the tree is already mutated and we can't diff it anymore.
-  const oldChildren = oldNode ? [...oldNode.children] : null;
+const updateQueue = [];
 
-  let instance;
-  if (
-    oldNode &&
-    oldNode.hasOwnProperty("_instance") &&
-    oldNode.type === newNode.type
-  ) {
-    instance = oldNode._instance;
-    instance.setVNode(newNode);
-  } else {
-    instance = Node(newNode);
+export const pushUpdate = (spark) => {
+  updateQueue.push(spark);
+  processQueue();
+};
+
+// That needs debounce ...
+const processQueue = throttle(200, () => {
+  let sparkToUpdate;
+  while ((sparkToUpdate = updateQueue.shift())) {
+    if (sparkToUpdate.isDirty()) {
+    reconcile({}, sparkToUpdate.getVNode());
+    }
+    else {
+      console.log("SKIPPED");
+    }
+  }
+});
+
+const sparkleVNode = (vnode) => {
+  if (vnode && !vnode.hasOwnProperty("_instance")) {
+    Object.defineProperty(vnode, "_instance", {
+      value: Spark(vnode),
+      configurable: true,
+    });
   }
 
-  Object.defineProperty(newNode, "_instance", {
-    value: instance,
-    configurable: true,
-  });
+  return vnode._instance;
+};
 
+export const reconcile = curry((config, vnode) => {
+  if (vnode.children && !Array.isArray(vnode.children)) {
+    return vnode;
+  }
+
+  // We need that copy for the unmount, otherwise the tree is already mutated and we can't diff it anymore.
+  const oldChildren = vnode.children ? [...vnode.children] : null;
+
+  let instance = sparkleVNode(vnode);
 
   // Compute the children of the newNode
-  if (newNode && instance.render) {
-    newNode.children =
+  if (vnode && instance.render) {
+    vnode.children =
       instance.render(
-        { ...newNode.props, children: newNode.children },
+        { ...vnode.props, children: vnode.children },
         {
-          state: newNode._instance.getState(),
-          setState: newNode._instance.setState,
-          mounted: newNode._instance.mounted,
-          unmounted: newNode._instance.unmounted,
+          state: instance.getState(),
+          setState: instance.setState,
+          mounted: instance.mounted,
+          unmounted: instance.unmounted,
         }
       ) || [];
+    
   } else {
-    newNode.children = [];
+    vnode.children = [];
   }
 
   // We wrap children that are single objects in arrays for consistency
-  if (
-    !Array.isArray(newNode.children) &&
-    typeof newNode.children === "object"
-  ) {
-    newNode.children = [newNode.children];
+  if (!Array.isArray(vnode.children) && typeof vnode.children === "object") {
+    vnode.children = [vnode.children];
+  }
+
+  if (Array.isArray(vnode.children)) {
+    vnode.children.forEach((n, i) => {
+      if (oldChildren[i]) {
+        Object.defineProperty(n, "_instance", {
+          value: oldChildren[i]._instance,
+          configurable: true,
+        });
+      }
+    });
   }
 
   // Check for unmounted
   if (oldChildren) {
     oldChildren.forEach((oldChild, i) => {
-      const newChild = newNode.children[i];
+      const newChild = vnode.children[i];
       if (
         (oldChild && !newChild) ||
         (newChild && newChild.type !== oldChild.type)
@@ -68,16 +106,66 @@ export const traverse = curry((config, oldNode, newNode) => {
     });
   }
 
-  if (Array.isArray(newNode.children) && newNode.children.length > 0) {
+  if (Array.isArray(vnode.children) && vnode.children.length > 0) {
     // Arrays will definitely need some special attention !
-    newNode.children = newNode.children.map((n, i) => {
-      const oldChild = oldNode ? oldChildren[i] : null;
-      return traverse(config, oldChild, n);
+    vnode.children.forEach((n, i) => {
+      const oldChild = oldChildren[i];
+      sparkleVNode(n);
+
+      if (oldChild && n && n._instance) {
+        const oldProps = oldChild.props;
+        const nextProps = n.props;
+
+        const arePropsEqual = Object.keys(oldProps).reduce(
+          (equal, propKey) => oldProps[propKey] === nextProps[propKey] && equal,
+          true
+        );
+
+        // console.log(oldChild._instance.getState(), n._instance.getState());
+        // console.log(oldChild.type);
+
+        if (
+          arePropsEqual &&
+          oldChild._instance.getState() === n._instance.getState()
+        ) {
+          console.log("SKIPPED");
+          vnode.children[i] = n;
+        }
+      }
+
+      vnode.children[i] = reconcile(config, n);
     });
-    return newNode;
+    // vnode.children = vnode.children.map((n, i) => {
+    //   const oldChild = oldChildren[i];
+    //   sparkleVNode(n);
+
+    //   if (oldChild && n && n._instance) {
+    //     const oldProps = oldChild.props;
+    //     const nextProps = n.props;
+
+    //     const arePropsEqual = Object.keys(oldProps).reduce(
+    //       (equal, propKey) => oldProps[propKey] === nextProps[propKey] && equal,
+    //       true
+    //     );
+
+    //     // console.log(oldChild._instance.getState(), n._instance.getState());
+    //     // console.log(oldChild.type);
+
+    //     if (
+    //       arePropsEqual &&
+    //       oldChild._instance.getState() === n._instance.getState()
+    //     ) {
+    //       console.log("SKIPPED");
+    //       return n;
+    //     }
+    //   }
+
+    //   return reconcile(config, n);
+    // });
+    return vnode;
   }
 
-  return newNode;
+  return vnode;
 });
 
 export const initWithRenderer = (container, render, config = defaultConfig) => {
@@ -90,10 +178,7 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
   );
 
   const start = (newTree) => {
-    tree = traverse(config, tree, newTree);
-
-    // render(tree);
-    // requestAnimationFrame(() => start(nodeElement));
+    tree = reconcile(config, newTree);
   };
 
   container.addEventListener("click", wireEvent);

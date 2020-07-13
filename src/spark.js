@@ -1,33 +1,27 @@
-import { traverse } from "./core";
+import { pushUpdate } from "./core";
 
-export const Node = (vnode) => {
+export const Spark = vnode => {
+  let _this = {};
   let isMounted = false;
   let unmountedFn = null;
   let state = null;
+  let props;
   let _vnode = vnode;
+  let _dirty = true;
 
   // Later to do diff, initial oldProps = {} before first render.
-  let oldProps;
-  let props;
 
-  const setState = (newState) => {
+  const setState = newState => {
     state = newState;
+    _dirty = true
 
-    setTimeout(() => {
-      traverse(
-        {},
-        _vnode,
-        _vnode,
-      );
-    }, 200);
+    pushUpdate(_this);
   };
   const getState = () => {
     return state;
   };
 
-  const getType = () => type;
-
-  const mounted = (fn) => {
+  const mounted = fn => {
     if (!isMounted) {
       isMounted = true;
       fn();
@@ -44,21 +38,29 @@ export const Node = (vnode) => {
     }
   };
 
-  const setVNode = (vnode) => {
+  const setVNode = vnode => {
     _vnode = vnode;
   };
 
   const getVNode = () => _vnode;
 
-  return {
+  const render = (...inputs) => {
+    _dirty = false;
+
+    return typeof vnode.type === "function" ? vnode.type(...inputs) : null;
+  }
+
+  const isDirty = () => _dirty;
+
+  return Object.assign(_this, {
     setState,
     getState,
-    getType,
     mounted,
     unmounted,
     triggerUnmounted,
-    render: typeof vnode.type === "function" ? vnode.type : null,
+    render,
     setVNode,
     getVNode,
-  };
+    isDirty,
+  });
 };
