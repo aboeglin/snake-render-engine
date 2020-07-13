@@ -201,7 +201,7 @@ describe("core", () => {
 
   // TODO: Add cases for lifecycles such as children swapping etc ( that might force key to be added or not ).
   test("mounted should be called when a new child is rendered", () => {
-    let renders = 0;
+    jest.useFakeTimers();
     const mountedFns = [];
 
     const container = {
@@ -209,10 +209,12 @@ describe("core", () => {
       addEventListener: (type, handler) => {},
     };
 
-    const Parent = () => {
-      renders = renders + 1;
+    const Parent = (_, { mounted, setState, state }) => {
+      mounted(() => {
+        setState(true);
+      });
 
-      if (renders === 1) {
+      if (!state) {
         return createElement(Child1);
       } else {
         return createElement(Child2);
@@ -239,13 +241,14 @@ describe("core", () => {
 
     const parent = createElement(Parent);
     start(parent);
-    start(parent);
+
+    jest.advanceTimersByTime(200);
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
   });
 
-  test.only("mounted should only be called once for nodes that are re-rendered due to state change", () => {
+  test("mounted should only be called once for nodes that are re-rendered due to state change", () => {
     jest.useFakeTimers();
     const mountedFn = jest.fn();
 
@@ -272,10 +275,9 @@ describe("core", () => {
     expect(mountedFn).toHaveBeenCalledTimes(1);
   });
 
-  test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", (done) => {
-    const unmountedFn = jest.fn(() => {
-      done();
-    });
+  test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
+    jest.useFakeTimers();
+    const unmountedFn = jest.fn();
 
     const container = {
       clientHeight: 100,
@@ -304,7 +306,8 @@ describe("core", () => {
     const start = initWithRenderer(container, render);
     const wrapper = createElement(Wrapper);
     start(wrapper);
-    expect(unmountedFn).toHaveBeenCalledTimes(0);
+    jest.advanceTimersByTime(200);
+    expect(unmountedFn).toHaveBeenCalledTimes(1);
   });
 
   test("unmounted should not be called if the node is still being rendered", () => {
@@ -446,48 +449,45 @@ describe("core", () => {
     start(wrapper);
   });
 
-  test("setState should trigger a tree update", (done) => {
+  test("setState should trigger a tree update", () => {
+    jest.useFakeTimers();
     let actual = null;
 
     const Wrapper = () => createElement(StateDude);
 
     const StateDude = (_, { setState, mounted, state }) => {
       mounted(() => setState({ mounted: true }));
-
       return createElement(Child, { mounted: state ? state.mounted : false });
     };
 
-    const Child = ({ mounted }) => {
-      if (mounted) {
-        setTimeout(() => {
-          const expected = {
-            type: Wrapper,
-            props: {},
-            children: [
-              {
-                type: StateDude,
-                props: {},
-                children: [
-                  {
-                    type: Child,
-                    props: { mounted: true },
-                    children: [],
-                    key: undefined,
-                  },
-                ],
-                key: undefined,
-              },
-            ],
-            key: undefined,
-          };
-          expect(actual).toEqual(expected);
-          done();
-        }, 300);
-      }
+    const Child = () => {};
+
+    const expected = {
+      type: Wrapper,
+      props: {},
+      children: [
+        {
+          type: StateDude,
+          props: {},
+          children: [
+            {
+              type: Child,
+              props: { mounted: true },
+              children: [],
+              key: undefined,
+            },
+          ],
+          key: undefined,
+        },
+      ],
+      key: undefined,
     };
 
     const wrapper = createElement(Wrapper);
     actual = configuredTraverse(wrapper);
+
+    jest.advanceTimersByTime(2010);
+    expect(actual).toEqual(expected);
   });
 
   test("updates should be batched", () => {
@@ -537,9 +537,8 @@ describe("core", () => {
     expect(actual).toEqual(expected);
   });
 
-  test.only("updates should not recompute sparks that have already been updated the same batch should update the same spark twice", (done) => {
-    // jest.useFakeTimers();
-
+  test("updates should not recompute sparks that have already been updated the same batch should update the same spark twice", () => {
+    jest.useFakeTimers();
     const Wrapper = () => [
       createElement(Child, { value: 18 }),
       createElement(Child, { value: 27 }),
@@ -548,35 +547,23 @@ describe("core", () => {
     const Child = ({ value }, { state, setState, mounted }) => {
       mounted(() => {
         setState(value);
-        setState(value);
       });
 
       return createElement(GrandChild, { value });
     };
 
-    let renders = 0;
-    let mountCount = 0;
-    const GrandChild = ({ value }, { mounted, setState, state }) => {
-      renders = renders + 1;
+    const GrandChild = jest.fn(({ value }, { mounted, setState, state }) => {
       mounted(() => {
-        mountCount = mountCount + 1;
-        console.log("mount count", mountCount);
-        setState(value);
-        setState(value);
         setState(value);
       });
 
       return state;
-    };
+    });
 
     const wrapper = createElement(Wrapper);
-    const actual = configuredTraverse(wrapper);
+    configuredTraverse(wrapper);
 
-    jest.advanceTimersByTime(200);
-    const util = require("util");
-    console.log(util.inspect(actual, { depth: null })); // Does not return the correct tree ...
-
-    expect(renders).toBe(4);
-    done();
+    jest.advanceTimersByTime(2010);
+    expect(GrandChild).toHaveBeenCalledTimes(4);
   });
 });

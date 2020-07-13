@@ -84,7 +84,7 @@ export const reconcile = curry((config, vnode) => {
 
   if (Array.isArray(vnode.children)) {
     vnode.children.forEach((n, i) => {
-      if (oldChildren[i]) {
+      if (oldChildren[i] && oldChildren[i].type === n.type) {
         Object.defineProperty(n, "_instance", {
           value: oldChildren[i]._instance,
           configurable: true,
@@ -107,10 +107,8 @@ export const reconcile = curry((config, vnode) => {
   }
 
   if (Array.isArray(vnode.children) && vnode.children.length > 0) {
-    // Arrays will definitely need some special attention !
-    vnode.children.forEach((n, i) => {
+    vnode.children = vnode.children.map((n, i) => {
       const oldChild = oldChildren[i];
-      sparkleVNode(n);
 
       if (oldChild && n && n._instance) {
         const oldProps = oldChild.props;
@@ -121,47 +119,16 @@ export const reconcile = curry((config, vnode) => {
           true
         );
 
-        // console.log(oldChild._instance.getState(), n._instance.getState());
-        // console.log(oldChild.type);
-
         if (
           arePropsEqual &&
           oldChild._instance.getState() === n._instance.getState()
         ) {
-          console.log("SKIPPED");
-          vnode.children[i] = n;
+          return n;
         }
       }
 
-      vnode.children[i] = reconcile(config, n);
+      return reconcile(config, n);
     });
-    // vnode.children = vnode.children.map((n, i) => {
-    //   const oldChild = oldChildren[i];
-    //   sparkleVNode(n);
-
-    //   if (oldChild && n && n._instance) {
-    //     const oldProps = oldChild.props;
-    //     const nextProps = n.props;
-
-    //     const arePropsEqual = Object.keys(oldProps).reduce(
-    //       (equal, propKey) => oldProps[propKey] === nextProps[propKey] && equal,
-    //       true
-    //     );
-
-    //     // console.log(oldChild._instance.getState(), n._instance.getState());
-    //     // console.log(oldChild.type);
-
-    //     if (
-    //       arePropsEqual &&
-    //       oldChild._instance.getState() === n._instance.getState()
-    //     ) {
-    //       console.log("SKIPPED");
-    //       return n;
-    //     }
-    //   }
-
-    //   return reconcile(config, n);
-    // });
     return vnode;
   }
 
