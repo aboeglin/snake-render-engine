@@ -31,16 +31,15 @@ const processQueue = throttle(200, () => {
   let sparkToUpdate;
   while ((sparkToUpdate = updateQueue.shift())) {
     if (sparkToUpdate.isDirty()) {
-    reconcile({}, sparkToUpdate.getVNode());
-    }
-    else {
+      reconcile({}, sparkToUpdate.getVNode());
+    } else {
       console.log("SKIPPED");
     }
   }
 });
 
 const sparkleVNode = (vnode) => {
-  if (vnode && !vnode.hasOwnProperty("_instance")) {
+  if (vnode && !vnode._instance) {
     Object.defineProperty(vnode, "_instance", {
       value: Spark(vnode),
       configurable: true,
@@ -72,9 +71,8 @@ export const reconcile = curry((config, vnode) => {
           unmounted: instance.unmounted,
         }
       ) || [];
-    
   } else {
-    vnode.children = [];
+    // vnode.children = [];
   }
 
   // We wrap children that are single objects in arrays for consistency
@@ -98,8 +96,8 @@ export const reconcile = curry((config, vnode) => {
     oldChildren.forEach((oldChild, i) => {
       const newChild = vnode.children[i];
       if (
-        (oldChild && !newChild) ||
-        (newChild && newChild.type !== oldChild.type)
+        ((oldChild && !newChild) ||
+        (newChild && newChild.type !== oldChild.type)) && oldChild._instance
       ) {
         oldChild._instance.triggerUnmounted();
       }

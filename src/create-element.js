@@ -1,9 +1,7 @@
 export const createElement = (type, props = {}, children = []) => {
-//   const { key, ...realProps } = props;
-  const key = props.key;
-  delete props.key;
+  const { key, ...realProps } = props;
 
-  return VNode(type, props, children, key);
+  return VNode(type, realProps, children, key);
 };
 
 const VNode = (type, props, children, key) => ({

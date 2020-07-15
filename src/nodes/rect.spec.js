@@ -1,5 +1,5 @@
 import Rect from "./rect";
-import { traverse } from "../core";
+import { reconcile } from "../core";
 import { createElement } from "../create-element";
 import { createClock } from "../clock";
 
@@ -11,14 +11,14 @@ const lifecycles = {
 };
 const config = { clock, lifecycles };
 
-const configuredTraverse = traverse(config);
+const configuredReconcile = reconcile(config);
 
 describe("Rect", () => {
   test("It should have a Rect function", () => {
     expect(typeof Rect).toBe("function");
   });
 
-  test.only("The Rect function should build a rect js object", () => {
+  test("The Rect function should build a rect js object", () => {
     const expected = {
       type: Rect,
       props: {
@@ -42,8 +42,7 @@ describe("Rect", () => {
       ],
     };
 
-    const actual = configuredTraverse(
-      null,
+    const actual = configuredReconcile(
       createElement(Rect, {
         x: 0,
         y: 0,
@@ -103,8 +102,7 @@ describe("Rect", () => {
       ],
     };
 
-    const actual = configuredTraverse(
-      null,
+    const actual = configuredReconcile(
       createElement(
         Rect,
         {
@@ -164,8 +162,7 @@ describe("Rect", () => {
         ],
       };
 
-    const actual = configuredTraverse(
-      null,
+    const actual = configuredReconcile(
       createElement(CustomNode, {
         x: 2,
         y: 2,

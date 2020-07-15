@@ -4,7 +4,7 @@ export const Spark = vnode => {
   let _this = {};
   let isMounted = false;
   let unmountedFn = null;
-  let state = null;
+  let state = undefined; // So that we can have default state in nodes.
   let props;
   let _vnode = vnode;
   let _dirty = true;
@@ -47,7 +47,7 @@ export const Spark = vnode => {
   const render = (...inputs) => {
     _dirty = false;
 
-    return typeof vnode.type === "function" ? vnode.type(...inputs) : null;
+    return typeof vnode.type === "function" ? vnode.type(...inputs) : vnode.children;
   }
 
   const isDirty = () => _dirty;

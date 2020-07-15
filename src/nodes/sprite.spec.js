@@ -1,5 +1,5 @@
 import Sprite from "./sprite";
-import { traverse } from "../core";
+import { reconcile } from "../core";
 import { createElement } from "../create-element";
 import { createClock } from "../clock";
 
@@ -11,7 +11,7 @@ const lifecycles = {
 };
 const config = { clock, lifecycles };
 
-const configuredTraverse = traverse(config);
+const configuredReconcile = reconcile(config);
 
 describe("Sprite", () => {
   test("It should have a Sprite function", () => {
@@ -51,8 +51,7 @@ describe("Sprite", () => {
       ],
     };
 
-    const actual = configuredTraverse(
-      null,
+    const actual = configuredReconcile(
       createElement(Sprite, {
         x: 0,
         y: 0,

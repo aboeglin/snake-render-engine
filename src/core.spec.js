@@ -209,7 +209,7 @@ describe("core", () => {
       addEventListener: (type, handler) => {},
     };
 
-    const Parent = (_, { mounted, setState, state }) => {
+    const Parent = (_, { mounted, setState, state = false }) => {
       mounted(() => {
         setState(true);
       });
@@ -246,6 +246,7 @@ describe("core", () => {
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
+    jest.resetAllMocks();
   });
 
   test("mounted should only be called once for nodes that are re-rendered due to state change", () => {
@@ -273,6 +274,7 @@ describe("core", () => {
 
     jest.advanceTimersByTime(200);
     expect(mountedFn).toHaveBeenCalledTimes(1);
+    jest.resetAllMocks();
   });
 
   test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
@@ -285,9 +287,6 @@ describe("core", () => {
     };
 
     const ANode = (_, { mounted, setState, state = { child: true } }) => {
-      if (!state) {
-        state = { child: true };
-      }
       mounted(() => {
         setState({ child: false });
       });
@@ -308,6 +307,7 @@ describe("core", () => {
     start(wrapper);
     jest.advanceTimersByTime(200);
     expect(unmountedFn).toHaveBeenCalledTimes(1);
+    jest.resetAllMocks();
   });
 
   test("unmounted should not be called if the node is still being rendered", () => {
@@ -380,12 +380,7 @@ describe("core", () => {
   });
 
   test("state should not be shared for different elements", () => {
-    let renders = 0;
-
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
-    };
+    jest.useFakeTimers();
 
     const Wrapper = () => [
       createElement(StateOwner, { value: 3 }, []),
@@ -393,26 +388,22 @@ describe("core", () => {
     ];
 
     const StateOwner = ({ value }, { setState, state, mounted }) => {
-      renders = renders + 1;
-
       mounted(() => {
         setState(value);
       });
-
-      if (renders === 3) {
-        expect(state).toEqual(value);
-      }
+      return state;
     };
 
-    const render = () => {};
+    const actual = configuredTraverse(createElement(Wrapper, {}, []));
+    jest.advanceTimersByTime(200);
 
-    const start = initWithRenderer(container, render);
-
-    const wrapper = createElement(Wrapper, {}, []);
-    start(wrapper);
+    expect(actual.children[0].children).toBe(3);
+    expect(actual.children[1].children).toBe(28);
+    jest.resetAllMocks();
   });
 
   test("props should update", () => {
+    // Should use setState instead of calling start many times.
     let renders = 0;
 
     const container = {
@@ -455,9 +446,9 @@ describe("core", () => {
 
     const Wrapper = () => createElement(StateDude);
 
-    const StateDude = (_, { setState, mounted, state }) => {
+    const StateDude = (_, { setState, mounted, state = { mounted: false } }) => {
       mounted(() => setState({ mounted: true }));
-      return createElement(Child, { mounted: state ? state.mounted : false });
+      return createElement(Child, { mounted: state.mounted });
     };
 
     const Child = () => {};
@@ -486,8 +477,9 @@ describe("core", () => {
     const wrapper = createElement(Wrapper);
     actual = configuredTraverse(wrapper);
 
-    jest.advanceTimersByTime(2010);
+    jest.advanceTimersByTime(201);
     expect(actual).toEqual(expected);
+    jest.resetAllMocks();
   });
 
   test("updates should be batched", () => {
@@ -535,6 +527,7 @@ describe("core", () => {
     };
 
     expect(actual).toEqual(expected);
+    jest.resetAllMocks();
   });
 
   test("updates should not recompute sparks that have already been updated the same batch should update the same spark twice", () => {
@@ -544,7 +537,7 @@ describe("core", () => {
       createElement(Child, { value: 27 }),
     ];
 
-    const Child = ({ value }, { state, setState, mounted }) => {
+    const Child = ({ value }, { setState, mounted }) => {
       mounted(() => {
         setState(value);
       });
@@ -563,7 +556,8 @@ describe("core", () => {
     const wrapper = createElement(Wrapper);
     configuredTraverse(wrapper);
 
-    jest.advanceTimersByTime(2010);
+    jest.advanceTimersByTime(201);
     expect(GrandChild).toHaveBeenCalledTimes(4);
+    jest.resetAllMocks();
   });
 });
