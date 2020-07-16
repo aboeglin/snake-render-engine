@@ -41,6 +41,7 @@ const sparkleVNode = (vnode) => {
     Object.defineProperty(vnode, "_instance", {
       value: Spark(vnode),
       configurable: true,
+      writable: false,
     });
   }
   return vnode._instance;
@@ -72,19 +73,20 @@ export const reconcile = curry((config, vnode) => {
     vnode.children = [vnode.children];
   }
 
-  if (Array.isArray(vnode.children)) {
-    vnode.children.forEach((n, i) => {
-      if (oldChildren[i] && oldChildren[i].type === n.type) {
-        Object.defineProperty(n, "_instance", {
-          value: oldChildren[i]._instance,
-          configurable: true,
-        });
-      }
-    });
-  }
-
-  // Check for unmounted
   if (oldChildren) {
+    if (Array.isArray(vnode.children)) {
+      vnode.children.forEach((n, i) => {
+        if (oldChildren[i] && oldChildren[i].type === n.type) {
+          Object.defineProperty(n, "_instance", {
+            value: oldChildren[i]._instance,
+            configurable: true,
+            writable: false,
+          });
+        }
+      });
+    }
+
+    // Check for unmounted
     oldChildren.forEach((oldChild, i) => {
       const newChild = vnode.children[i];
       if (

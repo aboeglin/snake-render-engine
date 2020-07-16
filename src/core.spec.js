@@ -263,7 +263,6 @@ describe("core", () => {
     const Wrapper = () => createElement(ANode);
 
     const ANode = jest.fn((_, { unmounted, setState, state, mounted }) => {
-      console.log(state);
       mounted(() => {
         setState("Trigger update");
       });
