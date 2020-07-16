@@ -129,6 +129,8 @@ describe("core", () => {
 
   test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
     // Check this test again, not sure it does what it should.
+    // TODO: Should use setState instead of calling start many times.
+    // REWRITE
     const mountedFn = jest.fn();
 
     const container = {
@@ -315,6 +317,8 @@ describe("core", () => {
   });
 
   test("unmounted should not be called if the node is still being rendered", () => {
+    // TODO: Should use setState instead of calling start many times.
+    // REWRITE
     const unmountedFn = jest.fn();
 
     const container = {
@@ -339,7 +343,7 @@ describe("core", () => {
     expect(unmountedFn).not.toHaveBeenCalled();
   });
 
-  test("traverse should resolve the children correctly", () => {
+  test("reconcile should resolve the children correctly", () => {
     const Parent = ({ stuff }) =>
       createElement(
         Child,
@@ -407,7 +411,8 @@ describe("core", () => {
   });
 
   test("props should update", () => {
-    // Should use setState instead of calling start many times.
+    // TODO: Should use setState instead of calling start many times.
+    // REWRITE
     let renders = 0;
 
     const container = {
@@ -664,4 +669,12 @@ describe("core", () => {
     expect(actual.children[0].children).toEqual([{ value: 28, valueFromState: 29, children: [] }]);
     jest.resetAllMocks();
   });
+
+  test.todo("reconcile should mount children added to a node after a setState update");
+  test.todo("reconcile should unmount children removed from a node after a setState update");
+
+  // eg: [ NodeA, NodeA, NodeA ] -> [ NodeA, NodeB, Node A ]
+  // The second child should be : unmounted ( NodeA ), remounted ( NodeB )
+  test.todo("reconcile should unmount children that have changed type after a setState update");
+  test.todo("reconcile should resolve children with a key in order to figure out re-ordering without unmounting or mounting nodes");
 });
