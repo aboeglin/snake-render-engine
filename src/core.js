@@ -2,6 +2,7 @@ import { curry, pipe } from "ramda";
 import { Spark } from "./spark";
 import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
+import Rect from "./nodes/rect";
 
 const defaultConfig = {
   clock: createClock(Date.now),
@@ -45,34 +46,28 @@ const sparkleVNode = (vnode) => {
       configurable: true,
     });
   }
-
   return vnode._instance;
 };
 
 export const reconcile = curry((config, vnode) => {
-  if (vnode.children && !Array.isArray(vnode.children)) {
-    return vnode;
-  }
-
   // We need that copy for the unmount, otherwise the tree is already mutated and we can't diff it anymore.
   const oldChildren = vnode.children ? [...vnode.children] : null;
 
   let instance = sparkleVNode(vnode);
 
   // Compute the children of the newNode
-  if (vnode && instance.render) {
-    vnode.children =
-      instance.render(
-        { ...vnode.props, children: vnode.children },
-        {
-          state: instance.getState(),
-          setState: instance.setState,
-          mounted: instance.mounted,
-          unmounted: instance.unmounted,
-        }
-      ) || [];
-  } else {
-    // vnode.children = [];
+  const nextRender = instance.render(vnode) || [];
+
+  // Render will return the same reference if it shouldn't be updated.
+  if (nextRender === vnode.children) {
+    return vnode;
+  }
+
+  vnode.children = nextRender;
+
+  // If it's a core node, we assign what is rendered to the node directly.
+  if (vnode.type._system) {
+    vnode = vnode.children;
   }
 
   // We wrap children that are single objects in arrays for consistency
@@ -97,7 +92,8 @@ export const reconcile = curry((config, vnode) => {
       const newChild = vnode.children[i];
       if (
         ((oldChild && !newChild) ||
-        (newChild && newChild.type !== oldChild.type)) && oldChild._instance
+          (newChild && newChild.type !== oldChild.type)) &&
+        oldChild._instance
       ) {
         oldChild._instance.triggerUnmounted();
       }
@@ -105,29 +101,7 @@ export const reconcile = curry((config, vnode) => {
   }
 
   if (Array.isArray(vnode.children) && vnode.children.length > 0) {
-    vnode.children = vnode.children.map((n, i) => {
-      const oldChild = oldChildren[i];
-
-      if (oldChild && n && n._instance) {
-        const oldProps = oldChild.props;
-        const nextProps = n.props;
-
-        const arePropsEqual = Object.keys(oldProps).reduce(
-          (equal, propKey) => oldProps[propKey] === nextProps[propKey] && equal,
-          true
-        );
-
-        if (
-          arePropsEqual &&
-          oldChild._instance.getState() === n._instance.getState()
-        ) {
-          return n;
-        }
-      }
-
-      return reconcile(config, n);
-    });
-    return vnode;
+    vnode.children = vnode.children.map(reconcile(config));
   }
 
   return vnode;

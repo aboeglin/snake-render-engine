@@ -31,6 +31,7 @@ describe("core", () => {
       createElement(Rect, { x: 5, y: 7 }),
     ];
     const Rect = (props) => ({
+      type: "RECT",
       x: props.x,
       y: props.y,
     });
@@ -47,6 +48,7 @@ describe("core", () => {
           },
           children: [
             {
+              type: "RECT",
               children: [],
               x: 2,
               y: 3,
@@ -61,6 +63,7 @@ describe("core", () => {
           },
           children: [
             {
+              type: "RECT",
               children: [],
               x: 5,
               y: 7,
@@ -99,6 +102,7 @@ describe("core", () => {
     const expected = jest.fn();
 
     const ANode = (props) => ({
+      type: "Node",
       onClick: expected,
       x: 5,
       y: 5,
@@ -446,7 +450,10 @@ describe("core", () => {
 
     const Wrapper = () => createElement(StateDude);
 
-    const StateDude = (_, { setState, mounted, state = { mounted: false } }) => {
+    const StateDude = (
+      _,
+      { setState, mounted, state = { mounted: false } }
+    ) => {
       mounted(() => setState({ mounted: true }));
       return createElement(Child, { mounted: state.mounted });
     };
@@ -554,10 +561,34 @@ describe("core", () => {
     });
 
     const wrapper = createElement(Wrapper);
-    configuredTraverse(wrapper);
+    const actual = configuredTraverse(wrapper);
 
-    jest.advanceTimersByTime(201);
+    jest.advanceTimersByTime(200);
     expect(GrandChild).toHaveBeenCalledTimes(4);
+    expect(actual.children[0].children[0].children).toBe(18);
+    expect(actual.children[1].children[0].children).toBe(27);
+    jest.resetAllMocks();
+  });
+
+  test("updates should stop if props did not change", () => {
+    jest.useFakeTimers();
+    const Wrapper = (_, { mounted, setState, state = 28 }) => {
+      mounted(() => {
+        setState(28);
+      });
+      return createElement(Child, { value: state });
+    };
+
+    const Child = jest.fn(({ value }) => {
+      return value;
+    });
+
+    const wrapper = createElement(Wrapper);
+    const actual = configuredTraverse(wrapper);
+
+    jest.advanceTimersByTime(200);
+    expect(Child).toHaveBeenCalledTimes(1);
+    expect(actual.children[0].children).toBe(28);
     jest.resetAllMocks();
   });
 });

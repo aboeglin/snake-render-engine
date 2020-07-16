@@ -9,4 +9,9 @@ const Rect = (props) => ({
   children: props.children,
 });
 
+Object.defineProperty(Rect, "_system", {
+  value: true,
+  configurable: true,
+});
+
 export default Rect;

@@ -20,35 +20,18 @@ describe("Sprite", () => {
 
   test("The Sprite function should build a sprite js object", () => {
     const expected = {
-      type: Sprite,
-      props: {
-        x: 0,
-        y: 0,
-        z: 0,
-        width: 5,
-        height: 5,
-        texture: {
-          width: 100,
-          height: 100,
-          data: [],
-        },
+      type: "SPRITE",
+      x: 0,
+      y: 0,
+      z: 0,
+      width: 5,
+      height: 5,
+      texture: {
+        width: 100,
+        height: 100,
+        data: [],
       },
-      children: [
-        {
-          type: "SPRITE",
-          x: 0,
-          y: 0,
-          z: 0,
-          width: 5,
-          height: 5,
-          texture: {
-            width: 100,
-            height: 100,
-            data: [],
-          },
-          children: [],
-        },
-      ],
+      children: [],
     };
 
     const actual = configuredReconcile(

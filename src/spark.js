@@ -1,27 +1,30 @@
 import { pushUpdate } from "./core";
 
-export const Spark = vnode => {
+export const Spark = (vnode) => {
   let _this = {};
   let isMounted = false;
   let unmountedFn = null;
   let state = undefined; // So that we can have default state in nodes.
-  let props;
+  let nextState = undefined;
+  let props = {};
+  let oldProps = null;
   let _vnode = vnode;
   let _dirty = true;
+  let _lastRender = null;
 
-  // Later to do diff, initial oldProps = {} before first render.
+  const getProps = () => props;
+  const getOldProps = () => oldProps;
 
-  const setState = newState => {
-    state = newState;
-    _dirty = true
+  const setState = (newState) => {
+    nextState = newState;
+    _dirty = true;
 
     pushUpdate(_this);
   };
-  const getState = () => {
-    return state;
-  };
+  const getState = () => state;
+  const getNextState = () => nextState
 
-  const mounted = fn => {
+  const mounted = (fn) => {
     if (!isMounted) {
       isMounted = true;
       fn();
@@ -38,28 +41,55 @@ export const Spark = vnode => {
     }
   };
 
-  const setVNode = vnode => {
-    _vnode = vnode;
-  };
-
   const getVNode = () => _vnode;
 
-  const render = (...inputs) => {
+  const render = (vnode) => {
     _dirty = false;
 
-    return typeof vnode.type === "function" ? vnode.type(...inputs) : vnode.children;
-  }
+    if (oldProps) {
+      // const arePropsEqual = Object.keys(oldProps).reduce(
+      //   (equal, propKey) => oldProps[propKey] === props[propKey] && equal,
+      //   true
+      // );
+  
+      const arePropsEqual = true;
+      if (
+        arePropsEqual &&
+        state === nextState
+      ) {
+        return _lastRender;
+      }
+    }
+    
+    state = nextState;
+    oldProps = props;
+    _vnode = vnode;
+
+    return _lastRender = typeof _vnode.type === "function"
+    ? _vnode.type(
+        { ..._vnode.props, children: _vnode.children },
+        {
+          state,
+          setState,
+          mounted,
+          unmounted,
+        }
+      )
+    : vnode.children;
+  };
 
   const isDirty = () => _dirty;
 
   return Object.assign(_this, {
+    getProps,
+    getOldProps,
     setState,
     getState,
+    getNextState,
     mounted,
     unmounted,
     triggerUnmounted,
     render,
-    setVNode,
     getVNode,
     isDirty,
   });
