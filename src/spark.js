@@ -1,3 +1,5 @@
+import { always, curry, eqProps, ifElse, keys, pipe, reduce } from "ramda";
+
 import { pushUpdate } from "./core";
 
 export const Spark = (vnode) => {
@@ -22,7 +24,7 @@ export const Spark = (vnode) => {
     pushUpdate(_this);
   };
   const getState = () => state;
-  const getNextState = () => nextState
+  const getNextState = () => nextState;
 
   const mounted = (fn) => {
     if (!isMounted) {
@@ -45,37 +47,28 @@ export const Spark = (vnode) => {
 
   const render = (vnode) => {
     _dirty = false;
+    props = vnode.props;
 
-    if (oldProps) {
-      // const arePropsEqual = Object.keys(oldProps).reduce(
-      //   (equal, propKey) => oldProps[propKey] === props[propKey] && equal,
-      //   true
-      // );
-  
-      const arePropsEqual = true;
-      if (
-        arePropsEqual &&
-        state === nextState
-      ) {
-        return _lastRender;
-      }
+    if (oldProps && arePropsEqual(oldProps, props) && state === nextState) {
+      return _lastRender;
     }
-    
+
     state = nextState;
     oldProps = props;
     _vnode = vnode;
 
-    return _lastRender = typeof _vnode.type === "function"
-    ? _vnode.type(
-        { ..._vnode.props, children: _vnode.children },
-        {
-          state,
-          setState,
-          mounted,
-          unmounted,
-        }
-      )
-    : vnode.children;
+    return (_lastRender =
+      typeof _vnode.type === "function"
+        ? _vnode.type(
+            { ..._vnode.props, children: _vnode.children },
+            {
+              state,
+              setState,
+              mounted,
+              unmounted,
+            }
+          )
+        : vnode.children);
   };
 
   const isDirty = () => _dirty;
@@ -94,3 +87,14 @@ export const Spark = (vnode) => {
     isDirty,
   });
 };
+
+const arePropsEqual = curry((prevProps, nextProps) =>
+  ifElse(
+    (x) => keys(x).length === keys(nextProps).length,
+    pipe(
+      keys,
+      reduce((r, key) => eqProps(key, prevProps, nextProps) && r, true)
+    ),
+    always(false)
+  )(prevProps)
+);

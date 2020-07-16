@@ -33,8 +33,6 @@ const processQueue = throttle(200, () => {
   while ((sparkToUpdate = updateQueue.shift())) {
     if (sparkToUpdate.isDirty()) {
       reconcile({}, sparkToUpdate.getVNode());
-    } else {
-      console.log("SKIPPED");
     }
   }
 });
@@ -66,7 +64,8 @@ export const reconcile = curry((config, vnode) => {
   vnode.children = nextRender;
 
   // If it's a core node, we assign what is rendered to the node directly.
-  if (vnode.type._system) {
+  // TODO: We should add a test for this for prop change !!
+  if (vnode.type && vnode.type._system) {
     vnode = vnode.children;
   }
 

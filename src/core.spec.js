@@ -570,7 +570,7 @@ describe("core", () => {
     jest.resetAllMocks();
   });
 
-  test("updates should stop if props did not change", () => {
+  test("update propagation should stop if state did not change", () => {
     jest.useFakeTimers();
     const Wrapper = (_, { mounted, setState, state = 28 }) => {
       mounted(() => {
@@ -589,6 +589,79 @@ describe("core", () => {
     jest.advanceTimersByTime(200);
     expect(Child).toHaveBeenCalledTimes(1);
     expect(actual.children[0].children).toBe(28);
+    jest.resetAllMocks();
+  });
+
+  test("update propagation should stop if props did not change", () => {
+    jest.useFakeTimers();
+
+    const Wrapper = (_, { mounted, setState }) => {
+      mounted(() => {
+        setState(29);
+      });
+      return createElement(Child, { value: 28 });
+    };
+
+    const Child = jest.fn(({ value }) => {
+      return value;
+    });
+
+    const wrapper = createElement(Wrapper);
+    const actual = configuredTraverse(wrapper);
+
+    jest.advanceTimersByTime(200);
+    expect(Child).toHaveBeenCalledTimes(1);
+    expect(actual.children[0].children).toBe(28);
+    jest.resetAllMocks();
+  });
+
+  test("update propagation should not stop if props did change", () => {
+    jest.useFakeTimers();
+
+    const Wrapper = (_, { mounted, setState, state = 28 }) => {
+      mounted(() => {
+        setState(29);
+      });
+      return createElement(Child, { value: state });
+    };
+
+    const Child = jest.fn(({ value }) => {
+      return value;
+    });
+
+    const wrapper = createElement(Wrapper);
+    const actual = configuredTraverse(wrapper);
+
+    jest.advanceTimersByTime(200);
+    expect(Child).toHaveBeenCalledTimes(2);
+    expect(actual.children[0].children).toBe(29);
+    jest.resetAllMocks();
+  });
+
+  test("update propagation should not stop if prop count did change", () => {
+    jest.useFakeTimers();
+
+    const Wrapper = (_, { mounted, setState, state = 28 }) => {
+      mounted(() => {
+        setState(29);
+      });
+
+      return state === 28
+        ? createElement(Child, { value: 28 })
+        : createElement(Child, { value: 28, valueFromState: state });
+    };
+
+    const Child = jest.fn(({ value, valueFromState }) => ({
+      value,
+      valueFromState,
+    }));
+
+    const wrapper = createElement(Wrapper);
+    const actual = configuredTraverse(wrapper);
+
+    jest.advanceTimersByTime(200);
+    expect(Child).toHaveBeenCalledTimes(2);
+    expect(actual.children[0].children).toEqual([{ value: 28, valueFromState: 29, children: [] }]);
     jest.resetAllMocks();
   });
 });
