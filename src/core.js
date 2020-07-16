@@ -36,7 +36,7 @@ const processQueue = throttle(BATCH_UPDATE_INTERVAL, () => {
   }
 });
 
-const sparkleVNode = (vnode) => {
+const sparkFromNode = (vnode) => {
   if (vnode && !vnode._instance) {
     Object.defineProperty(vnode, "_instance", {
       value: Spark(vnode),
@@ -49,14 +49,15 @@ const sparkleVNode = (vnode) => {
 
 export const reconcile = curry((config, vnode) => {
   // We need that copy for the unmount, otherwise the tree is already mutated and we can't diff it anymore.
-  const oldChildren = vnode.children ? [...vnode.children] : null;
+  const oldChildren = vnode.children ? [...vnode.children] : [];
 
-  let instance = sparkleVNode(vnode);
+  let instance = sparkFromNode(vnode);
 
   // Compute the children of the newNode
   const nextRender = instance.render(vnode) || [];
 
-  // Render will return the same reference if it shouldn't be updated.
+  // Render will return the same reference if it shouldn't be updated. Which happens if state and props
+  // have not changed since the previous render.
   if (nextRender === vnode.children) {
     return vnode;
   }
@@ -69,35 +70,42 @@ export const reconcile = curry((config, vnode) => {
   }
 
   // We wrap children that are single objects in arrays for consistency
+  // TODO: Should this be just for objects ?
+  // Before that should we record the initial children type so that later we
+  // can separate between arrays which need keys and other types ?
+  // Render could do that and set one of:
+  // - CHILDREN_OBJECT
+  // - CHILDREN_EMPTY
+  // - CHILDREN_VALUE
+  // - CHILDREN_ARRAY
   if (!Array.isArray(vnode.children) && typeof vnode.children === "object") {
     vnode.children = [vnode.children];
   }
 
-  if (oldChildren) {
-    if (Array.isArray(vnode.children)) {
-      vnode.children.forEach((n, i) => {
-        if (oldChildren[i] && oldChildren[i].type === n.type) {
-          Object.defineProperty(n, "_instance", {
-            value: oldChildren[i]._instance,
-            configurable: true,
-            writable: false,
-          });
-        }
-      });
-    }
-
-    // Check for unmounted
-    oldChildren.forEach((oldChild, i) => {
-      const newChild = vnode.children[i];
-      if (
-        ((oldChild && !newChild) ||
-          (newChild && newChild.type !== oldChild.type)) &&
-        oldChild._instance
-      ) {
-        oldChild._instance.triggerUnmounted();
+  // Reassign instances of previous children to new children
+  if (Array.isArray(vnode.children)) {
+    vnode.children.forEach((n, i) => {
+      if (oldChildren[i] && oldChildren[i].type === n.type) {
+        Object.defineProperty(n, "_instance", {
+          value: oldChildren[i]._instance,
+          configurable: true,
+          writable: false,
+        });
       }
     });
   }
+
+  // Check for unmounted
+  oldChildren.forEach((oldChild, i) => {
+    const newChild = vnode.children[i];
+    if (
+      ((oldChild && !newChild) ||
+        (newChild && newChild.type !== oldChild.type)) &&
+      oldChild._instance
+    ) {
+      oldChild._instance.triggerUnmounted();
+    }
+  });
 
   if (Array.isArray(vnode.children) && vnode.children.length > 0) {
     vnode.children = vnode.children.map(reconcile(config));
