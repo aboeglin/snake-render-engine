@@ -2,7 +2,7 @@ import { curry, pipe } from "ramda";
 import { Spark } from "./spark";
 import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
-import Rect from "./nodes/rect";
+import { BATCH_UPDATE_INTERVAL } from "./constants";
 
 const defaultConfig = {
   clock: createClock(Date.now),
@@ -27,8 +27,7 @@ export const pushUpdate = (spark) => {
   processQueue();
 };
 
-// That needs debounce ...
-const processQueue = throttle(200, () => {
+const processQueue = throttle(BATCH_UPDATE_INTERVAL, () => {
   let sparkToUpdate;
   while ((sparkToUpdate = updateQueue.shift())) {
     if (sparkToUpdate.isDirty()) {
@@ -64,7 +63,6 @@ export const reconcile = curry((config, vnode) => {
   vnode.children = nextRender;
 
   // If it's a core node, we assign what is rendered to the node directly.
-  // TODO: We should add a test for this for prop change !!
   if (vnode.type && vnode.type._system) {
     vnode = vnode.children;
   }
