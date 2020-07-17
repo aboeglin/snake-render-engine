@@ -133,7 +133,14 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
 
   const start = (newTree) => {
     tree = reconcile(config, newTree);
+
+    renderLoop();
   };
+
+  const renderLoop = () => {
+    render(tree);
+    requestAnimationFrame(renderLoop);
+  }
 
   container.addEventListener("click", wireEvent);
 

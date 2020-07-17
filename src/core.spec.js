@@ -5,6 +5,8 @@ import { createClock } from "./clock";
 import { createElement } from "./create-element";
 import { BATCH_UPDATE_INTERVAL } from "./constants";
 
+/** @jsx createElement */
+
 replaceRaf([global]);
 const getTime = () => 499;
 const clock = createClock(getTime);
@@ -690,14 +692,14 @@ describe("core", () => {
 
       return state === 1
         ? [
-            createElement(ChildThatShouldNotUnmount, { key: 1 }),
-            createElement(Child, { key: 2 }),
-            createElement(Child, { key: 3 }),
+            <ChildThatShouldNotUnmount key={1} />,
+            <Child key={2} />,
+            <Child key={3} />,
           ]
         : [
-            createElement(Child, { key: 2 }),
-            createElement(ChildThatShouldNotUnmount, { key: 1 }),
-            createElement(Child, { key: 3 }),
+            <Child key={2} />,
+            <ChildThatShouldNotUnmount key={1} />,
+            <Child key={3} />,
           ];
     };
 
@@ -708,7 +710,7 @@ describe("core", () => {
 
     const Child = () => {};
 
-    const actual = configuredReconcile(createElement(Wrapper));
+    const actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
@@ -723,11 +725,10 @@ describe("core", () => {
   });
 
   test("children should be ignored when explicit ones are defined", () => {
-    const Wrapper = () => createElement(Child, {}, ["a"]);
-
+    const Wrapper = () => <Child>a</Child>;
     const Child = ({ children }) => children;
 
-    const actual = configuredReconcile(createElement(Wrapper, {}, ["b"]));
+    const actual = configuredReconcile(<Wrapper>b</Wrapper>);
 
     expect(actual.children[0].children[0]).toBe("a");
   });
