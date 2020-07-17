@@ -432,8 +432,7 @@ describe("core", () => {
       return state;
     };
 
-    const wrapper = createElement(Wrapper);
-    actual = configuredReconcile(wrapper);
+    actual = configuredReconcile(createElement(Wrapper));
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
@@ -484,8 +483,7 @@ describe("core", () => {
       return state;
     });
 
-    const wrapper = createElement(Wrapper);
-    const actual = configuredReconcile(wrapper);
+    const actual = configuredReconcile(createElement(Wrapper));
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(GrandChild).toHaveBeenCalledTimes(4);
@@ -507,8 +505,7 @@ describe("core", () => {
       return value;
     });
 
-    const wrapper = createElement(Wrapper);
-    const actual = configuredReconcile(wrapper);
+    const actual = configuredReconcile(createElement(Wrapper));
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
@@ -530,8 +527,7 @@ describe("core", () => {
       return value;
     });
 
-    const wrapper = createElement(Wrapper);
-    const actual = configuredReconcile(wrapper);
+    const actual = configuredReconcile(createElement(Wrapper));
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
@@ -553,8 +549,7 @@ describe("core", () => {
       return value;
     });
 
-    const wrapper = createElement(Wrapper);
-    const actual = configuredReconcile(wrapper);
+    const actual = configuredReconcile(createElement(Wrapper));
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
@@ -580,8 +575,7 @@ describe("core", () => {
       valueFromState,
     }));
 
-    const wrapper = createElement(Wrapper);
-    const actual = configuredReconcile(wrapper);
+    const actual = configuredReconcile(createElement(Wrapper));
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
@@ -591,18 +585,98 @@ describe("core", () => {
     jest.resetAllMocks();
   });
 
-  test.todo(
-    "reconcile should mount children added to a node after a setState update"
-  );
-  test.todo(
-    "reconcile should unmount children removed from a node after a setState update"
-  );
+  test("reconcile should mount children added to a node after a setState update", () => {
+    jest.useFakeTimers();
+    const mountedFn = jest.fn();
+
+    const Wrapper = (_, { mounted, setState, state = 1 }) => {
+      mounted(() => {
+        setState(2);
+      });
+
+      return state === 1
+        ? [createElement(Child)]
+        : [createElement(Child), createElement(Child)];
+    };
+
+    const Child = (_, { mounted }) => {
+      mounted(mountedFn);
+    };
+
+    const actual = configuredReconcile(createElement(Wrapper));
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+
+    expect(mountedFn).toHaveBeenCalledTimes(2);
+    expect(actual.children.length).toBe(2);
+
+    jest.resetAllMocks();
+  });
+
+  test("reconcile should unmount children removed from a node after a setState update", () => {
+    jest.useFakeTimers();
+    const unmountedFn = jest.fn();
+
+    const Wrapper = (_, { mounted, setState, state = 2 }) => {
+      mounted(() => {
+        setState(1);
+      });
+
+      return state === 1
+        ? [createElement(Child)]
+        : [createElement(Child), createElement(ChildThatUnmounts)];
+    };
+
+    const ChildThatUnmounts = (_, { unmounted }) => {
+      unmounted(unmountedFn);
+    };
+
+    const Child = () => {};
+
+    const actual = configuredReconcile(createElement(Wrapper));
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+
+    expect(unmountedFn).toHaveBeenCalledTimes(1);
+    expect(actual.children.length).toBe(1);
+
+    jest.resetAllMocks();
+  });
 
   // eg: [ NodeA, NodeA, NodeA ] -> [ NodeA, NodeB, Node A ]
   // The second child should be : unmounted ( NodeA ), remounted ( NodeB )
-  test.todo(
-    "reconcile should unmount children that have changed type after a setState update"
-  );
+  test("reconcile should unmount children that have changed type after a setState update", () => {
+    jest.useFakeTimers();
+    const unmountedFn = jest.fn();
+
+    const Wrapper = (_, { mounted, setState, state = 2 }) => {
+      mounted(() => {
+        setState(1);
+      });
+
+      return state === 1
+        ? [createElement(Child), createElement(Child), createElement(Child)]
+        : [
+            createElement(Child),
+            createElement(ChildThatUnmounts),
+            createElement(Child),
+          ];
+    };
+
+    const ChildThatUnmounts = (_, { unmounted }) => {
+      unmounted(unmountedFn);
+    };
+
+    const Child = () => {};
+
+    configuredReconcile(createElement(Wrapper));
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+
+    expect(unmountedFn).toHaveBeenCalledTimes(1);
+
+    jest.resetAllMocks();
+  });
   test.todo(
     "reconcile should resolve children with a key in order to figure out re-ordering without unmounting or mounting nodes"
   );

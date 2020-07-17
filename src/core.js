@@ -73,7 +73,7 @@ export const reconcile = curry((config, vnode) => {
   // TODO: Should this be just for objects ?
   // Before that should we record the initial children type so that later we
   // can separate between arrays which need keys and other types ?
-  // Render could do that and set one of:
+  // Render could probably do that and set one of:
   // - CHILDREN_OBJECT
   // - CHILDREN_EMPTY
   // - CHILDREN_VALUE
