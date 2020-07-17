@@ -29,10 +29,7 @@ describe("core", () => {
   });
 
   test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
-    const Scene = () => [
-      createElement(Rect, { x: 2, y: 3 }),
-      createElement(Rect, { x: 5, y: 7 }),
-    ];
+    const Scene = () => [<Rect x={2} y={3} />, <Rect x={5} y={7} />];
     const Rect = (props) => ({
       type: "RECT",
       x: props.x,
@@ -76,8 +73,7 @@ describe("core", () => {
       ],
     };
 
-    const scene = createElement(Scene);
-    const tree = configuredReconcile(scene, {});
+    const tree = configuredReconcile(<Scene />);
     expect(tree).toEqual(expected);
   });
 
@@ -104,7 +100,7 @@ describe("core", () => {
     let click = null;
     const expected = jest.fn();
 
-    const ANode = (props) => ({
+    const ANode = () => ({
       type: "Node",
       onClick: expected,
       x: 5,
@@ -123,7 +119,7 @@ describe("core", () => {
     const render = () => {};
 
     const start = initWithRenderer(container, render);
-    start(createElement(ANode));
+    start(<ANode />);
 
     click({ offsetX: 10, offsetY: 90, type: "click" });
 
@@ -137,7 +133,7 @@ describe("core", () => {
       mounted(mountedFn);
     };
 
-    configuredReconcile(createElement(ANode));
+    configuredReconcile(<ANode />);
     expect(mountedFn).toHaveBeenCalledTimes(1);
   });
 
@@ -148,9 +144,9 @@ describe("core", () => {
       mounted(mountedFn);
     };
 
-    const Scene = () => [createElement(ANode), createElement(ANode)];
+    const Scene = () => [<ANode />, <ANode />];
 
-    configuredReconcile(createElement(Scene));
+    configuredReconcile(<Scene />);
     expect(mountedFn).toHaveBeenCalledTimes(2);
   });
 
@@ -163,9 +159,9 @@ describe("core", () => {
       mounted(mountedFn);
     };
 
-    const TwoNodes = () => [createElement(ANode), createElement(ANode)];
+    const TwoNodes = () => [<ANode />, <ANode />];
 
-    configuredReconcile(createElement(TwoNodes));
+    configuredReconcile(<TwoNodes />);
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);

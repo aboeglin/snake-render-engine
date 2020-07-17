@@ -3,6 +3,8 @@ import { reconcile } from "../core";
 import { createElement } from "../create-element";
 import { createClock } from "../clock";
 
+/** @jsx createElement */
+
 const getTime = () => 500;
 const clock = createClock(getTime);
 const lifecycles = {
@@ -31,13 +33,7 @@ describe("Rect", () => {
     };
 
     const actual = configuredReconcile(
-      createElement(Rect, {
-        x: 0,
-        y: 0,
-        z: 0,
-        width: 5,
-        height: 5,
-      })
+      <Rect x={0} y={0} z={0} width={5} height={5} />
     );
 
     expect(actual).toEqual(expected);
@@ -67,30 +63,23 @@ describe("Rect", () => {
     };
 
     const actual = configuredReconcile(
-      createElement(
-        Rect,
-        {
-          x: 0,
-          y: 0,
-          z: 0,
-          width: 5,
-          height: 5,
-        },
-        [createElement(Rect, { x: 0, y: 0, z: 0, width: 15, height: 15 })]
-      )
+      <Rect x={0} y={0} z={0} width={5} height={5}>
+        <Rect x={0} y={0} z={0} width={15} height={15} />
+      </Rect>
     );
     expect(actual).toEqual(expected);
   });
 
   test("The node functions should be able to render custom logic nodes", () => {
-    const CustomNode = (props) =>
-      createElement(Rect, {
-        x: props.x / 2,
-        y: props.y / 2,
-        z: props.z / 2,
-        width: props.width / 2,
-        height: props.height / 2,
-      });
+    const CustomNode = (props) => (
+      <Rect
+        x={props.x / 2}
+        y={props.y / 2}
+        z={props.z / 2}
+        width={props.width / 2}
+        height={props.height / 2}
+      />
+    );
 
     const expected = {
       type: CustomNode,
@@ -115,13 +104,7 @@ describe("Rect", () => {
     };
 
     const actual = configuredReconcile(
-      createElement(CustomNode, {
-        x: 2,
-        y: 2,
-        z: 2,
-        width: 10,
-        height: 10,
-      })
+      <CustomNode x={2} y={2} z={2} width={10} height={10} />
     );
 
     expect(actual).toEqual(expected);

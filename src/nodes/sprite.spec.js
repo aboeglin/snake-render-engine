@@ -3,6 +3,8 @@ import { reconcile } from "../core";
 import { createElement } from "../create-element";
 import { createClock } from "../clock";
 
+/** @jsx createElement */
+
 const getTime = () => 500;
 const clock = createClock(getTime);
 const lifecycles = {
@@ -35,19 +37,18 @@ describe("Sprite", () => {
     };
 
     const actual = configuredReconcile(
-      createElement(Sprite, {
-        x: 0,
-        y: 0,
-        z: 0,
-        width: 5,
-        height: 5,
-        // TODO: verify that texture is complete
-        texture: {
+      <Sprite
+        x={0}
+        y={0}
+        z={0}
+        width={5}
+        height={5}
+        texture={{
           width: 100,
           height: 100,
           data: [],
-        },
-      })
+        }}
+      />
     );
 
     expect(actual).toEqual(expected);

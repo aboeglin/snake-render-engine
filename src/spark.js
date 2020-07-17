@@ -14,8 +14,8 @@ export const Spark = (vnode) => {
   let _dirty = true;
   let _lastRender = null;
 
-  const getProps = () => props;
-  const getOldProps = () => oldProps;
+  // const getProps = () => props;
+  // const getOldProps = () => oldProps;
 
   const setState = (newState) => {
     nextState = newState;
@@ -23,8 +23,6 @@ export const Spark = (vnode) => {
 
     pushUpdate(_this);
   };
-  const getState = () => state;
-  const getNextState = () => nextState;
 
   const mounted = (fn) => {
     if (!isMounted) {
@@ -74,11 +72,7 @@ export const Spark = (vnode) => {
   const isDirty = () => _dirty;
 
   return Object.assign(_this, {
-    getProps,
-    getOldProps,
     setState,
-    getState,
-    getNextState,
     mounted,
     unmounted,
     triggerUnmounted,

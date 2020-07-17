@@ -47,9 +47,18 @@ const sparkFromNode = (vnode) => {
   return vnode._instance;
 };
 
+const sanitizeAndCopyChildren = (children) => {
+  if (Array.isArray(children)) {
+    return [...children];
+  } else if (children) {
+    return [children];
+  }
+  return [];
+};
+
 export const reconcile = curry((config, vnode) => {
   // We need that copy for the unmount, otherwise the tree is already mutated and we can't diff it anymore.
-  const oldChildren = vnode.children ? [...vnode.children] : [];
+  const oldChildren = sanitizeAndCopyChildren(vnode.children);
 
   let instance = sparkFromNode(vnode);
 
@@ -85,7 +94,11 @@ export const reconcile = curry((config, vnode) => {
   // Reassign instances of previous children to new children
   if (Array.isArray(vnode.children)) {
     vnode.children.forEach((newChild, i) => {
-      const oldChild = findVNodeByKey(oldChildren, oldChildren[i], newChild.key);
+      const oldChild = findVNodeByKey(
+        oldChildren,
+        oldChildren[i],
+        newChild.key
+      );
 
       if (oldChild && oldChild.type === newChild.type) {
         Object.defineProperty(newChild, "_instance", {
@@ -99,7 +112,11 @@ export const reconcile = curry((config, vnode) => {
 
   // Check for unmounted
   oldChildren.forEach((oldChild, i) => {
-    const newChild = findVNodeByKey(vnode.children, vnode.children[i], oldChild.key);
+    const newChild = findVNodeByKey(
+      vnode.children,
+      vnode.children[i],
+      oldChild.key
+    );
 
     if (
       (!newChild || (newChild && newChild.type !== oldChild.type)) &&
@@ -131,8 +148,8 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
     (event) => handleEvent(event, tree)
   );
 
-  const start = (newTree) => {
-    tree = reconcile(config, newTree);
+  const start = (vnode) => {
+    tree = reconcile(config, vnode);
 
     renderLoop();
   };
@@ -140,7 +157,7 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
   const renderLoop = () => {
     render(tree);
     requestAnimationFrame(renderLoop);
-  }
+  };
 
   container.addEventListener("click", wireEvent);
 
