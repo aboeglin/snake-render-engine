@@ -84,10 +84,12 @@ export const reconcile = curry((config, vnode) => {
 
   // Reassign instances of previous children to new children
   if (Array.isArray(vnode.children)) {
-    vnode.children.forEach((n, i) => {
-      if (oldChildren[i] && oldChildren[i].type === n.type) {
-        Object.defineProperty(n, "_instance", {
-          value: oldChildren[i]._instance,
+    vnode.children.forEach((newChild, i) => {
+      const oldChild = findVNodeByKey(oldChildren, oldChildren[i], newChild.key);
+
+      if (oldChild && oldChild.type === newChild.type) {
+        Object.defineProperty(newChild, "_instance", {
+          value: oldChild._instance,
           configurable: true,
           writable: false,
         });
@@ -97,10 +99,10 @@ export const reconcile = curry((config, vnode) => {
 
   // Check for unmounted
   oldChildren.forEach((oldChild, i) => {
-    const newChild = vnode.children[i];
+    const newChild = findVNodeByKey(vnode.children, vnode.children[i], oldChild.key);
+
     if (
-      ((oldChild && !newChild) ||
-        (newChild && newChild.type !== oldChild.type)) &&
+      (!newChild || (newChild && newChild.type !== oldChild.type)) &&
       oldChild._instance
     ) {
       oldChild._instance.triggerUnmounted();
@@ -112,6 +114,12 @@ export const reconcile = curry((config, vnode) => {
   }
 
   return vnode;
+});
+
+const findVNodeByKey = curry((children, fallback, key) => {
+  return key !== undefined
+    ? children.find((x) => x.key === key) || fallback
+    : fallback;
 });
 
 export const initWithRenderer = (container, render, config = defaultConfig) => {

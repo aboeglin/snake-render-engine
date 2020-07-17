@@ -677,7 +677,58 @@ describe("core", () => {
 
     jest.resetAllMocks();
   });
-  test.todo(
-    "reconcile should resolve children with a key in order to figure out re-ordering without unmounting or mounting nodes"
-  );
+
+  test("reconcile should resolve children with a key in order to figure out re-ordering without unmounting or mounting nodes", () => {
+    jest.useFakeTimers();
+    const unmountedFn = jest.fn();
+    const mountedFn = jest.fn();
+
+    const Wrapper = (_, { mounted, setState, state = 1 }) => {
+      mounted(() => {
+        setState(2);
+      });
+
+      return state === 1
+        ? [
+            createElement(ChildThatShouldNotUnmount, { key: 1 }),
+            createElement(Child, { key: 2 }),
+            createElement(Child, { key: 3 }),
+          ]
+        : [
+            createElement(Child, { key: 2 }),
+            createElement(ChildThatShouldNotUnmount, { key: 1 }),
+            createElement(Child, { key: 3 }),
+          ];
+    };
+
+    const ChildThatShouldNotUnmount = (_, { mounted, unmounted }) => {
+      mounted(mountedFn);
+      unmounted(unmountedFn);
+    };
+
+    const Child = () => {};
+
+    const actual = configuredReconcile(createElement(Wrapper));
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+
+    expect(unmountedFn).not.toHaveBeenCalled();
+    expect(mountedFn).toHaveBeenCalledTimes(1);
+
+    expect(actual.children[0].type).toBe(Child);
+    expect(actual.children[1].type).toBe(ChildThatShouldNotUnmount);
+    expect(actual.children[2].type).toBe(Child);
+
+    jest.resetAllMocks();
+  });
+
+  test("children should be ignored when explicit ones are defined", () => {
+    const Wrapper = () => createElement(Child, {}, ["a"]);
+
+    const Child = ({ children }) => children;
+
+    const actual = configuredReconcile(createElement(Wrapper, {}, ["b"]));
+
+    expect(actual.children[0].children[0]).toBe("a");
+  });
 });
