@@ -1,98 +1,143 @@
-import { contains, curry, forEach, pipe } from "ramda";
+import { curry, pipe } from "ramda";
+import { Spark } from "./spark";
 import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
-
-const makeLifecycles = () => {
-  let mountedResolvers = [];
-  const mounted = curry((resolver, handler) => {
-    resolver.mountedHandler = handler;
-    mountedResolvers.push(resolver);
-  });
-
-  let unmountedResolvers = [];
-  const unmounted = curry((resolver, handler) => {
-    resolver.unmountedHandler = handler;
-    unmountedResolvers.push(resolver);
-  });
-
-  const reset = () => {
-    mountedResolvers = [];
-    unmountedResolvers = [];
-  };
-
-  const getResolvers = () => ({
-    mountedResolvers,
-    unmountedResolvers,
-  });
-
-  return {
-    mounted,
-    unmounted,
-    __getResolvers: getResolvers,
-    __reset: reset,
-  };
-};
-
-export const traverse = curry((config, subtree, nodeResolver) => {
-  // TODO: time should be computed only once and passed to children. So most likely, start() should compute it.
-  // Otherwise we would end up with different nodes having different times within the same render cycle.
-
-  let resolverRef = null;
-  if (subtree && subtree.__internal && subtree.__internal.owner === nodeResolver.owner) {
-    resolverRef = subtree.__internal.resolver;
-  }
-
-  const node = nodeResolver({
-    time: config.clock.getCurrentTime(),
-    mounted: config.lifecycles.mounted(resolverRef || nodeResolver),
-    unmounted: config.lifecycles.unmounted(resolverRef || nodeResolver),
-    setContext: (key, value) => {
-      nodeResolver.context[key] = value;
-    },
-    getContext: (key) => nodeResolver.context[key],
-  });
-
-  if (!resolverRef) {
-    resolverRef = nodeResolver;
-  }
-
-  if (typeof node === "function") {
-    node.context = { ...nodeResolver.context, ...node.context };
-    const child = subtree && subtree.children ? subtree.children[0] : undefined;
-    return {
-      children: [traverse(config, child, node)],
-      __internal: { resolver: resolverRef, owner: nodeResolver.owner },
-    };
-  } else if (Array.isArray(node)) {
-    return {
-      children: node.map((nr, i) => {
-        const child = subtree ? subtree.children[i] : undefined;
-        nr.context = { ...nr.context, ...nodeResolver.context };
-        return traverse(config, child, nr);
-      }),
-      __internal: { resolver: resolverRef, owner: nodeResolver.owner },
-    };
-  } else if (node === undefined || node === null) {
-    return { __internal: { resolver: resolverRef, owner: nodeResolver.owner } };
-  }
-
-  return {
-    ...node,
-    children: node.children
-      ? node.children.map((nr, i) => {
-          const child = subtree ? subtree.children[i] : undefined;
-          nr.context = { ...nr.context, ...nodeResolver.context };
-          return traverse(config, child, nr);
-        })
-      : [],
-    __internal: { resolver: resolverRef, owner: nodeResolver.owner },
-  };
-});
+import { BATCH_UPDATE_INTERVAL } from "./constants";
 
 const defaultConfig = {
   clock: createClock(Date.now),
-  lifecycles: makeLifecycles(),
 };
+
+const throttle = curry((delay, fn) => {
+  let timeout = null;
+  return (...args) => {
+    if (!timeout) {
+      timeout = setTimeout(() => {
+        fn(...args);
+        timeout = null;
+      }, delay);
+    }
+  };
+});
+
+const updateQueue = [];
+
+export const pushUpdate = (spark) => {
+  updateQueue.push(spark);
+  processQueue();
+};
+
+const processQueue = throttle(BATCH_UPDATE_INTERVAL, () => {
+  let sparkToUpdate;
+  while ((sparkToUpdate = updateQueue.shift())) {
+    if (sparkToUpdate.isDirty()) {
+      reconcile({}, sparkToUpdate.getVNode());
+    }
+  }
+});
+
+const sparkFromNode = (vnode) => {
+  if (vnode && !vnode._instance) {
+    Object.defineProperty(vnode, "_instance", {
+      value: Spark(vnode),
+      configurable: true,
+      writable: false,
+    });
+  }
+  return vnode._instance;
+};
+
+const sanitizeAndCopyChildren = (children) => {
+  if (Array.isArray(children)) {
+    return [...children];
+  } else if (children) {
+    return [children];
+  }
+  return [];
+};
+
+export const reconcile = curry((config, vnode) => {
+  // We need that copy for the unmount, otherwise the tree is already mutated and we can't diff it anymore.
+  const oldChildren = sanitizeAndCopyChildren(vnode.children);
+
+  let instance = sparkFromNode(vnode);
+
+  // Compute the children of the newNode
+  const nextRender = instance.render(vnode) || [];
+
+  // Render will return the same reference if it shouldn't be updated. Which happens if state and props
+  // have not changed since the previous render.
+  if (nextRender === vnode.children) {
+    return vnode;
+  }
+
+  vnode.children = nextRender;
+
+  // If it's a core node, we assign what is rendered to the node directly.
+  if (vnode.type && vnode.type._system) {
+    vnode = vnode.children;
+  }
+
+  // We wrap children that are single objects in arrays for consistency
+  // TODO: Should this be just for objects ?
+  // Before that should we record the initial children type so that later we
+  // can separate between arrays which need keys and other types ?
+  // Render could probably do that and set one of:
+  // - CHILDREN_OBJECT
+  // - CHILDREN_EMPTY
+  // - CHILDREN_VALUE
+  // - CHILDREN_ARRAY
+  if (!Array.isArray(vnode.children) && typeof vnode.children === "object") {
+    vnode.children = [vnode.children];
+  }
+
+  // Reassign instances of previous children to new children
+  if (Array.isArray(vnode.children)) {
+    vnode.children.forEach((newChild, i) => {
+      const oldChild = findVNodeByKey(
+        oldChildren,
+        oldChildren[i],
+        newChild.key
+      );
+
+      if (oldChild && oldChild.type === newChild.type) {
+        Object.defineProperty(newChild, "_instance", {
+          value: oldChild._instance,
+          configurable: true,
+          writable: false,
+        });
+      }
+    });
+  }
+
+  // Check for unmounted
+  oldChildren.forEach((oldChild, i) => {
+    const newChild = findVNodeByKey(
+      vnode.children,
+      vnode.children[i],
+      oldChild.key
+    );
+
+    if (
+      (!newChild || (newChild && newChild.type !== oldChild.type)) &&
+      oldChild._instance
+    ) {
+      oldChild._instance.triggerUnmounted();
+    }
+  });
+
+  if (Array.isArray(vnode.children) && vnode.children.length > 0) {
+    vnode.children = vnode.children.map(reconcile(config));
+  }
+
+  return vnode;
+});
+
+const findVNodeByKey = curry((children, fallback, key) => {
+  return key !== undefined
+    ? children.find((x) => x.key === key) || fallback
+    : fallback;
+});
 
 export const initWithRenderer = (container, render, config = defaultConfig) => {
   // We need to closure the vdom, so that event handlers act on what is currently rendered
@@ -103,31 +148,18 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
     (event) => handleEvent(event, tree)
   );
 
-  const start = (nodeElement) => {
-    const prevResolvers = config.lifecycles.__getResolvers();
-    config.lifecycles.__reset();
+  const start = (vnode) => {
+    tree = reconcile(config, vnode);
 
-    tree = traverse(config, tree, nodeElement);
+    renderLoop();
+  };
 
-    const currResolvers = config.lifecycles.__getResolvers();
-
-    handleLifecycles(prevResolvers, currResolvers);
-
+  const renderLoop = () => {
     render(tree);
-    requestAnimationFrame(() => start(nodeElement));
+    requestAnimationFrame(renderLoop);
   };
 
   container.addEventListener("click", wireEvent);
 
   return start;
-};
-
-const handleLifecycles = (prevResolvers, currResolvers) => {
-  forEach(
-    (r) => !contains(r)(prevResolvers.mountedResolvers) && r.mountedHandler()
-  )(currResolvers.mountedResolvers);
-  forEach(
-    (r) =>
-      !contains(r)(currResolvers.unmountedResolvers) && r.unmountedHandler()
-  )(prevResolvers.unmountedResolvers);
 };

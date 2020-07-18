@@ -5,6 +5,8 @@ import { curry, forEach } from "ramda";
 // - keydown
 // - keyup
 // ...
+// TODO: Should probably check if root.type is one of the engine
+// such as RECT, SPRITE, ...
 export const handleEvent = curry((event, root) => {
   const minX = root.x - root.width / 2;
   const maxX = minX + root.width;

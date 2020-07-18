@@ -1,8 +1,11 @@
 import { replaceRaf } from "raf-stub";
 
-import { traverse, initWithRenderer } from "./core";
-import { Node } from "./node";
+import { reconcile, initWithRenderer } from "./core";
 import { createClock } from "./clock";
+import { createElement } from "./create-element";
+import { BATCH_UPDATE_INTERVAL } from "./constants";
+
+/** @jsx createElement */
 
 replaceRaf([global]);
 const getTime = () => 499;
@@ -18,190 +21,64 @@ const lifecycles = {
 };
 const config = { clock, lifecycles };
 
-const configuredTraverse = traverse(config);
+const configuredReconcile = reconcile(config);
 
 describe("core", () => {
-  const Scene = Node(() =>
-    SomeOtherNode({
-      children: [Rect({ x: 2, y: 3 }), Rect({ x: 5, y: 7 })],
-    })
-  );
-  const Rect = Node((props) => ({
-    x: props.x,
-    y: props.y,
-  }));
-  const SomeOtherNode = Node((props) => ({
-    children: props.children,
-  }));
-
   test("It should export a traverse function", () => {
-    expect(typeof traverse).toBe("function");
+    expect(typeof reconcile).toBe("function");
   });
 
-  test("traverse should resolve the node given", () => {
-    const SomeNode = Node(() => {});
-    const node = jest.fn(SomeNode({}));
-    configuredTraverse(null, node);
-    expect(node.mock.calls.length).toBe(1);
-  });
+  test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
+    const Scene = () => [<Rect x={2} y={3} />, <Rect x={5} y={7} />];
+    const Rect = (props) => ({
+      type: "RECT",
+      x: props.x,
+      y: props.y,
+    });
 
-  test("traverse should return a tree of resolved nodes", () => {
     const expected = {
-      __internal: expect.anything(),
+      type: Scene,
+      props: {},
       children: [
         {
-          __internal: expect.anything(),
+          type: Rect,
+          props: {
+            x: 2,
+            y: 3,
+          },
           children: [
             {
-              __internal: expect.anything(),
+              type: "RECT",
+              children: [],
               x: 2,
               y: 3,
-              children: [],
             },
+          ],
+        },
+        {
+          type: Rect,
+          props: {
+            x: 5,
+            y: 7,
+          },
+          children: [
             {
-              __internal: expect.anything(),
+              type: "RECT",
+              children: [],
               x: 5,
               y: 7,
-              children: [],
             },
           ],
         },
       ],
     };
 
-    const scene = Scene();
-    const tree = configuredTraverse(null, scene);
-    expect(tree).toEqual(expected);
-  });
-
-  test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
-    const Scene = Node(() => [Rect({ x: 2, y: 3 }), Rect({ x: 5, y: 7 })]);
-    const Rect = Node((props) => ({
-      x: props.x,
-      y: props.y,
-    }));
-
-    const expected = {
-      __internal: expect.anything(),
-      children: [
-        {
-          __internal: expect.anything(),
-          x: 2,
-          y: 3,
-          children: [],
-        },
-        {
-          __internal: expect.anything(),
-          x: 5,
-          y: 7,
-          children: [],
-        },
-      ],
-    };
-
-    const scene = Scene();
-    const tree = configuredTraverse(null, scene);
+    const tree = configuredReconcile(<Scene />);
     expect(tree).toEqual(expected);
   });
 
   test("It should export an initWithRenderer function", () => {
     expect(typeof initWithRenderer).toBe("function");
-  });
-
-  test("initWithRenderer should accept a renderer function called with the renderer node tree", (done) => {
-    const expected = {
-      __internal: expect.anything(),
-      children: [
-        {
-          __internal: expect.anything(),
-          children: [
-            {
-              __internal: expect.anything(),
-              x: 2,
-              y: 3,
-              children: [],
-            },
-            {
-              __internal: expect.anything(),
-              x: 5,
-              y: 7,
-              children: [],
-            },
-          ],
-        },
-      ],
-    };
-    const renderer = (tree) => {
-      expect(tree).toEqual(expected);
-      done();
-    };
-
-    const container = {
-      addEventListener: jest.fn(),
-    };
-
-    const start = initWithRenderer(container, renderer, config);
-    start(Scene());
-  });
-
-  test("initWithRenderer should accept a renderer function called with the renderer node tree on every requestAnimationFrame", () => {
-    const expected = {
-      __internal: expect.anything(),
-      children: [
-        {
-          __internal: expect.anything(),
-          children: [
-            {
-              __internal: expect.anything(),
-              x: 2,
-              y: 3,
-              children: [],
-            },
-            {
-              __internal: expect.anything(),
-              x: 5,
-              y: 7,
-              children: [],
-            },
-          ],
-        },
-      ],
-    };
-    const renderer = jest.fn();
-
-    const container = {
-      addEventListener: jest.fn(),
-    };
-
-    const start = initWithRenderer(container, renderer, config);
-    start(Scene());
-
-    requestAnimationFrame.step();
-
-    expect(renderer).toHaveBeenNthCalledWith(2, expected);
-  });
-
-  test("initWithRenderer should initialize a clock and give time to render functions", () => {
-    const expected = {
-      __internal: expect.anything(),
-      time: 500,
-      children: [],
-    };
-
-    const ANode = Node((props, { time }) => ({
-      time,
-    }));
-
-    const render = jest.fn();
-
-    const container = {
-      addEventListener: jest.fn(),
-    };
-
-    const start = initWithRenderer(container, render, config);
-    start(ANode());
-
-    expect(render).toHaveBeenCalledWith(expected);
   });
 
   test("initWithRenderer should register event handlers", () => {
@@ -223,13 +100,14 @@ describe("core", () => {
     let click = null;
     const expected = jest.fn();
 
-    const ANode = Node((props, { time }) => ({
+    const ANode = () => ({
+      type: "Node",
       onClick: expected,
       x: 5,
       y: 5,
       width: 10,
       height: 10,
-    }));
+    });
 
     const container = {
       clientHeight: 100,
@@ -241,7 +119,7 @@ describe("core", () => {
     const render = () => {};
 
     const start = initWithRenderer(container, render);
-    start(ANode());
+    start(<ANode />);
 
     click({ offsetX: 10, offsetY: 90, type: "click" });
 
@@ -249,365 +127,591 @@ describe("core", () => {
   });
 
   test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
-    // Check this test again, not sure it does what it should.
-
     const mountedFn = jest.fn();
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
+    const ANode = (_, { mounted }) => {
+      mounted(mountedFn);
     };
 
-    const ANode = Node((props, { mounted }) => {
-      mounted(mountedFn);
-    });
-
-    const render = () => {};
-
-    const start = initWithRenderer(container, render);
-    const aNode = ANode();
-    start(aNode);
-    start(aNode); // We trigger a second iteration to be sure it's only called once
-
+    configuredReconcile(<ANode />);
     expect(mountedFn).toHaveBeenCalledTimes(1);
   });
 
   test("nodes should be given a mounted function that is called once for each constructed element", () => {
-    // Check this test again, not sure it does what it should.
-
     const mountedFn = jest.fn();
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
+    const ANode = (_, { mounted }) => {
+      mounted(mountedFn);
     };
 
-    const ANode = Node((props, { mounted }) => {
-      mounted(mountedFn);
-    });
+    const Scene = () => [<ANode />, <ANode />];
 
-    const Scene = Node(() => [ANode(), ANode()]);
-
-    const render = () => {};
-
-    const start = initWithRenderer(container, render);
-
-    const scene = Scene();
-    // We construct a second element that should also call the mountedFn.
-
-    start(scene);
-
+    configuredReconcile(<Scene />);
     expect(mountedFn).toHaveBeenCalledTimes(2);
   });
 
   test("mounted should be called independently for each element when it is first rendered", () => {
     let mountedFns = [];
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
-    };
-
-    const ANode = Node((props, { mounted }) => {
+    const ANode = (_, { mounted }) => {
       const mountedFn = jest.fn();
       mountedFns.push(mountedFn);
       mounted(mountedFn);
-    });
+    };
 
-    const TwoNodes = Node(() => [ANode(), ANode()]);
+    const TwoNodes = () => [<ANode />, <ANode />];
 
-    const render = () => {};
-
-    const start = initWithRenderer(container, render);
-    start(TwoNodes());
+    configuredReconcile(<TwoNodes />);
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
   });
 
-  // test.only("playground", () => {
-  //   const Node1 = Node((_, { state, setState }) => {
-  //     setState(Math.random());
-  //     console.log(state);
-  //   });
-
-  //   Node1()({});
-  //   Node1()({});
-
-  //   const node1 = Node1();
-  //   const node2 = Node1();
-  //   node1({});
-  //   node2({});
-
-  //   node1({});
-  //   node2({});
-  // });
-
-  // TODO: Add cases for lifecycles such as children swapping etc ( that might force key to be added or not ).
   test("mounted should be called when a new child is rendered", () => {
-    let renders = 0;
+    jest.useFakeTimers();
     const mountedFns = [];
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
+    const Parent = (_, { mounted, setState, state = false }) => {
+      mounted(() => {
+        setState(true);
+      });
+
+      return !state ? <Child1 /> : <Child2 />;
     };
 
-    const Parent = Node(() => {
-      renders = renders + 1;
-
-      if (renders === 1) {
-        return Child1();
-      } else {
-        return Child2();
-      }
-    });
-
-    const Child1 = Node((_, { mounted }) => {
+    const Child1 = (_, { mounted }) => {
       const cb = jest.fn();
       mountedFns.push(cb);
 
       mounted(cb);
-    });
+    };
 
-    const Child2 = Node((_, { mounted }) => {
+    const Child2 = (_, { mounted }) => {
       const cb = jest.fn();
       mountedFns.push(cb);
 
       mounted(cb);
-    });
+    };
 
-    const render = () => {};
+    configuredReconcile(<Parent />);
 
-    const start = initWithRenderer(container, render);
-
-    const parent = Parent();
-    start(parent);
-    start(parent);
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
+    jest.resetAllMocks();
+  });
+
+  test("mounted should only be called once for nodes that are re-rendered due to state change", () => {
+    jest.useFakeTimers();
+    const mountedFn = jest.fn();
+
+    const Wrapper = () => <Child value={18} />;
+
+    const Child = ({ value }, { setState, mounted }) => {
+      mounted(() => {
+        setState(value);
+      });
+
+      return <GrandChild value={value} />;
+    };
+
+    const GrandChild = (_, { mounted, state }) => {
+      mounted(mountedFn);
+
+      return state;
+    };
+
+    configuredReconcile(<Wrapper />);
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    expect(mountedFn).toHaveBeenCalledTimes(1);
+    jest.resetAllMocks();
   });
 
   test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
-    // Doesn't work, we need to do tree diff in order to resolve instances of nodes.
+    jest.useFakeTimers();
     const unmountedFn = jest.fn();
-    let renders = 0;
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
+    const ANode = (_, { mounted, setState, state = { child: true } }) => {
+      mounted(() => {
+        setState({ child: false });
+      });
+
+      return state.child ? <WillUnmount /> : null;
     };
 
-    const ANode = Node((props) => {
-      renders = renders + 1;
+    const Wrapper = () => <ANode />;
 
-      return renders > 1 && renders < 3 ? null : WillUnmount();
-    });
-
-    const Wrapper = Node((props) => ANode());
-
-    const WillUnmount = Node((props, { unmounted }) => {
+    const WillUnmount = (_, { unmounted }) => {
       unmounted(unmountedFn);
-    });
+    };
 
-    const render = () => {};
+    configuredReconcile(<Wrapper />);
 
-    const start = initWithRenderer(container, render);
-    const wrapper = Wrapper();
-    start(wrapper);
-    expect(unmountedFn).toHaveBeenCalledTimes(0);
-    start(wrapper); // We trigger a second iteration to be sure it's only called once
-    start(wrapper); // We trigger a second iteration to be sure it's only called once
-    start(wrapper); // We trigger a second iteration to be sure it's only called once
-
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(unmountedFn).toHaveBeenCalledTimes(1);
+    jest.resetAllMocks();
   });
 
   test("unmounted should not be called if the node is still being rendered", () => {
+    jest.useFakeTimers();
     const unmountedFn = jest.fn();
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
-    };
+    const Wrapper = () => <ANode />;
 
-    const Wrapper = Node((props) => ANode());
-
-    const ANode = Node((props, { unmounted }) => {
+    const ANode = jest.fn((_, { unmounted, setState, mounted }) => {
+      mounted(() => {
+        setState("Trigger update");
+      });
       unmounted(unmountedFn);
     });
 
-    const render = () => {};
-
-    const start = initWithRenderer(container, render);
-    const wrapper = Wrapper({ show: true });
-
-    start(wrapper);
-    start(wrapper);
-    // start(wrapper);
-    // start(wrapper);
+    configuredReconcile(<Wrapper show={true} />);
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL + 1);
 
     expect(unmountedFn).not.toHaveBeenCalled();
+    expect(ANode).toHaveBeenCalledTimes(2);
+    jest.resetAllMocks();
   });
 
-  test("traverse should provide a setContext function to set data in context", () => {
-    const expected = 1;
+  test("reconcile should resolve the children correctly", () => {
+    const Parent = ({ stuff }) => (
+      <Child>
+        {stuff.map((x) => (
+          <GrandChild>{x}</GrandChild>
+        ))}
+      </Child>
+    );
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
+    const Child = ({ children }) => children;
+    const GrandChild = ({ children }) => children;
+    const Scene = () => <Parent stuff={["a", "b"]} />;
+
+    const expected = {
+      type: Scene,
+      props: {},
+      children: [
+        {
+          type: Parent,
+          props: { stuff: ["a", "b"] },
+          children: [
+            {
+              type: Child,
+              props: {},
+              children: [
+                {
+                  type: GrandChild,
+                  props: {},
+                  children: "a",
+                },
+                {
+                  type: GrandChild,
+                  props: {},
+                  children: "b",
+                },
+              ],
+            },
+          ],
+        },
+      ],
     };
 
-    const Wrapper = Node((_, { setContext }) => {
-      setContext("stuff", expected);
-
-      return ANode();
-    });
-
-    const ANode = Node((_, { getContext }) => {
-      expect(getContext("stuff")).toBe(expected);
-    });
-
-    const render = () => {};
-
-    const start = initWithRenderer(container, render);
-    start(Wrapper());
+    const actual = configuredReconcile(<Scene />);
+    expect(actual).toEqual(expected);
   });
 
-  test("context should also be available for array children", () => {
-    const expected = 1;
+  test("state should not be shared for different elements", () => {
+    jest.useFakeTimers();
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
+    const Wrapper = () => [<StateOwner value={3} />, <StateOwner value={28} />];
+
+    const StateOwner = ({ value }, { setState, state, mounted }) => {
+      mounted(() => {
+        setState(value);
+      });
+      return state;
     };
 
-    const Wrapper = Node((_, { setContext }) => {
-      setContext("stuff", expected);
+    const actual = configuredReconcile(<Wrapper />);
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
-      return { children: [ANode()] };
-    });
-
-    const ANode = Node((_, { getContext }) => {
-      expect(getContext("stuff")).toBe(expected);
-    });
-
-    const render = () => {};
-
-    const start = initWithRenderer(container, render);
-    start(Wrapper());
+    expect(actual.children[0].children).toBe(3);
+    expect(actual.children[1].children).toBe(28);
+    jest.resetAllMocks();
   });
 
-  test("context should also be available for array nodes", () => {
-    const expected = 1;
+  test("props should update", () => {
+    jest.useFakeTimers();
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
+    const Wrapper = (_, { mounted, setState, state = 2 }) => {
+      mounted(() => {
+        setState(15);
+      });
+      return <StateOwner value={state} />;
     };
 
-    const Wrapper = Node((_, { setContext }) => {
-      setContext("stuff", expected);
+    const StateOwner = ({ value }) => {
+      return value;
+    };
 
-      return [ANode()];
-    });
+    const actual = configuredReconcile(<Wrapper />);
 
-    const ANode = Node((_, { getContext }) => {
-      expect(getContext("stuff")).toBe(expected);
-    });
-
-    const render = () => {};
-
-    const start = initWithRenderer(container, render);
-    start(Wrapper());
+    expect(actual.children[0].children).toBe(2);
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    expect(actual.children[0].children).toBe(15);
   });
 
-  test("context should remain accross re-renders", () => {
-    const expected = 1;
+  test("setState should trigger a tree update", () => {
+    jest.useFakeTimers();
     let actual = null;
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
+    const Wrapper = () => <StateDude />;
+
+    const StateDude = (
+      _,
+      { setState, mounted, state = { mounted: false } }
+    ) => {
+      mounted(() => setState({ mounted: true }));
+      return <Child mounted={state.mounted} />;
     };
 
-    const Wrapper = Node((_, { setContext, mounted }) => {
-      mounted(() => setContext("stuff", expected));
-      return [ANode()];
-    });
+    const Child = () => {};
 
-    const ANode = Node((_, { getContext }) => {
-      actual = getContext("stuff");
-    });
+    const expected = {
+      type: Wrapper,
+      props: {},
+      children: [
+        {
+          type: StateDude,
+          props: {},
+          children: [
+            {
+              type: Child,
+              props: { mounted: true },
+              children: [],
+              key: undefined,
+            },
+          ],
+          key: undefined,
+        },
+      ],
+      key: undefined,
+    };
 
-    const render = () => {};
+    actual = configuredReconcile(<Wrapper />);
 
-    const start = initWithRenderer(container, render);
-
-    const wrapper = Wrapper();
-    start(wrapper);
-    start(wrapper);
-    start(wrapper);
-
-    expect(actual).toBe(expected);
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    expect(actual).toEqual(expected);
+    jest.resetAllMocks();
   });
 
-  test("nodes should be given a state object and a setState function to interface with state", (done) => {
-    const expected = 1;
-    let renders = 0;
+  test("updates should be batched", () => {
+    jest.useFakeTimers();
+    let actual = null;
 
-    const container = {
-      clientHeight: 100,
-      addEventListener: (type, handler) => {},
-    };
+    const Wrapper = () => [
+      <Child value={18} delay={199} />,
+      <Child value={27} delay={0} />,
+    ];
 
-    const Wrapper = Node((_, { setState, state, mounted }) => {
-      renders = renders + 1;
-
+    const Child = ({ value, delay }, { state, setState, mounted }) => {
       mounted(() => {
-        setState(expected);
+        setTimeout(() => {
+          setState(value);
+        }, delay);
       });
 
-      if (renders === 2) {
-        expect(state).toEqual(expected);
-        done();
-      }
+      return state;
+    };
 
-      return;
-    });
+    actual = configuredReconcile(<Wrapper />);
 
-    const render = () => {};
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
-    const start = initWithRenderer(container, render);
+    const expected = {
+      type: Wrapper,
+      props: {},
+      children: [
+        {
+          type: Child,
+          props: { value: 18, delay: 199 },
+          children: 18,
+          key: undefined,
+        },
+        {
+          type: Child,
+          props: { value: 27, delay: 0 },
+          children: 27,
+          key: undefined,
+        },
+      ],
+      key: undefined,
+    };
 
-    const wrapper = Wrapper();
-    start(wrapper);
-    start(wrapper); // state set in render one will only be available on next cycle.
+    expect(actual).toEqual(expected);
+    jest.resetAllMocks();
   });
 
-  // test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
-  //   const mountedFn = jest.fn();
+  test("updates should not recompute sparks that have already been updated the same batch should update the same spark twice", () => {
+    jest.useFakeTimers();
+    const Wrapper = () => [<Child value={18} />, <Child value={27} />];
 
-  //   const container = {
-  //     clientHeight: 100,
-  //     addEventListener: (type, handler) => {},
-  //   };
+    const Child = ({ value }, { setState, mounted }) => {
+      mounted(() => {
+        setState(value);
+      });
 
-  //   const ANode = Node((props, { mounted }) => {
-  //     mounted(mountedFn);
-  //   });
+      return <GrandChild value={value} />;
+    };
 
-  //   const TwoNodes = Node(() => ([
-  //     ANode(),
-  //     ANode(),
-  //   ]));
+    const GrandChild = jest.fn(({ value }, { mounted, setState, state }) => {
+      mounted(() => {
+        setState(value);
+      });
 
-  //   const render = () => {};
+      return state;
+    });
 
-  //   const start = initWithRenderer(container, render, { clock });
-  //   start(TwoNodes());
+    const actual = configuredReconcile(<Wrapper />);
 
-  //   expect(mountedFn).toHaveBeenCalledTimes(2);
-  // });
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    expect(GrandChild).toHaveBeenCalledTimes(4);
+    expect(actual.children[0].children[0].children).toBe(18);
+    expect(actual.children[1].children[0].children).toBe(27);
+    jest.resetAllMocks();
+  });
+
+  test("update propagation should stop if state did not change", () => {
+    jest.useFakeTimers();
+    const Wrapper = (_, { mounted, setState, state = 28 }) => {
+      mounted(() => {
+        setState(28);
+      });
+      return <Child value={state} />;
+    };
+
+    const Child = jest.fn(({ value }) => {
+      return value;
+    });
+
+    const actual = configuredReconcile(<Wrapper />);
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    expect(Child).toHaveBeenCalledTimes(1);
+    expect(actual.children[0].children).toBe(28);
+    jest.resetAllMocks();
+  });
+
+  test("update propagation should stop if props did not change", () => {
+    jest.useFakeTimers();
+
+    const Wrapper = (_, { mounted, setState }) => {
+      mounted(() => {
+        setState(29);
+      });
+      return <Child value={28} />;
+    };
+
+    const Child = jest.fn(({ value }) => {
+      return value;
+    });
+
+    const actual = configuredReconcile(<Wrapper />);
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    expect(Child).toHaveBeenCalledTimes(1);
+    expect(actual.children[0].children).toBe(28);
+    jest.resetAllMocks();
+  });
+
+  test("update propagation should not stop if props did change", () => {
+    jest.useFakeTimers();
+
+    const Wrapper = (_, { mounted, setState, state = 28 }) => {
+      mounted(() => {
+        setState(29);
+      });
+      return <Child value={state} />;
+    };
+
+    const Child = jest.fn(({ value }) => {
+      return value;
+    });
+
+    const actual = configuredReconcile(<Wrapper />);
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    expect(Child).toHaveBeenCalledTimes(2);
+    expect(actual.children[0].children).toBe(29);
+    jest.resetAllMocks();
+  });
+
+  test("update propagation should not stop if prop count did change", () => {
+    jest.useFakeTimers();
+
+    const Wrapper = (_, { mounted, setState, state = 28 }) => {
+      mounted(() => {
+        setState(29);
+      });
+
+      return state === 28 ? (
+        <Child value={28} />
+      ) : (
+        <Child value={28} valueFromState={state} />
+      );
+    };
+
+    const Child = jest.fn(({ value, valueFromState }) => ({
+      value,
+      valueFromState,
+    }));
+
+    const actual = configuredReconcile(<Wrapper />);
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    expect(Child).toHaveBeenCalledTimes(2);
+    expect(actual.children[0].children).toEqual([
+      { value: 28, valueFromState: 29, children: [] },
+    ]);
+    jest.resetAllMocks();
+  });
+
+  test("reconcile should mount children added to a node after a setState update", () => {
+    jest.useFakeTimers();
+    const mountedFn = jest.fn();
+
+    const Wrapper = (_, { mounted, setState, state = 1 }) => {
+      mounted(() => {
+        setState(2);
+      });
+
+      return state === 1 ? [<Child />] : [<Child />, <Child />];
+    };
+
+    const Child = (_, { mounted }) => {
+      mounted(mountedFn);
+    };
+
+    const actual = configuredReconcile(<Wrapper />);
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+
+    expect(mountedFn).toHaveBeenCalledTimes(2);
+    expect(actual.children.length).toBe(2);
+
+    jest.resetAllMocks();
+  });
+
+  test("reconcile should unmount children removed from a node after a setState update", () => {
+    jest.useFakeTimers();
+    const unmountedFn = jest.fn();
+
+    const Wrapper = (_, { mounted, setState, state = 2 }) => {
+      mounted(() => {
+        setState(1);
+      });
+
+      return state === 1 ? [<Child />] : [<Child />, <ChildThatUnmounts />];
+    };
+
+    const ChildThatUnmounts = (_, { unmounted }) => {
+      unmounted(unmountedFn);
+    };
+
+    const Child = () => {};
+
+    const actual = configuredReconcile(<Wrapper />);
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+
+    expect(unmountedFn).toHaveBeenCalledTimes(1);
+    expect(actual.children.length).toBe(1);
+
+    jest.resetAllMocks();
+  });
+
+  // eg: [ NodeA, NodeA, NodeA ] -> [ NodeA, NodeB, Node A ]
+  // The second child should be : unmounted ( NodeA ), remounted ( NodeB )
+  test("reconcile should unmount children that have changed type after a setState update", () => {
+    jest.useFakeTimers();
+    const unmountedFn = jest.fn();
+
+    const Wrapper = (_, { mounted, setState, state = 2 }) => {
+      mounted(() => {
+        setState(1);
+      });
+
+      return state === 1
+        ? [<Child />, <Child />, <Child />]
+        : [<Child />, <ChildThatUnmounts />, <Child />];
+    };
+
+    const ChildThatUnmounts = (_, { unmounted }) => {
+      unmounted(unmountedFn);
+    };
+
+    const Child = () => {};
+
+    configuredReconcile(<Wrapper />);
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+
+    expect(unmountedFn).toHaveBeenCalledTimes(1);
+
+    jest.resetAllMocks();
+  });
+
+  test("reconcile should resolve children with a key in order to figure out re-ordering without unmounting or mounting nodes", () => {
+    jest.useFakeTimers();
+    const unmountedFn = jest.fn();
+    const mountedFn = jest.fn();
+
+    const Wrapper = (_, { mounted, setState, state = 1 }) => {
+      mounted(() => {
+        setState(2);
+      });
+
+      return state === 1
+        ? [
+            <ChildThatShouldNotUnmount key={1} />,
+            <Child key={2} />,
+            <Child key={3} />,
+          ]
+        : [
+            <Child key={2} />,
+            <ChildThatShouldNotUnmount key={1} />,
+            <Child key={3} />,
+          ];
+    };
+
+    const ChildThatShouldNotUnmount = (_, { mounted, unmounted }) => {
+      mounted(mountedFn);
+      unmounted(unmountedFn);
+    };
+
+    const Child = () => {};
+
+    const actual = configuredReconcile(<Wrapper />);
+
+    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+
+    expect(unmountedFn).not.toHaveBeenCalled();
+    expect(mountedFn).toHaveBeenCalledTimes(1);
+
+    expect(actual.children[0].type).toBe(Child);
+    expect(actual.children[1].type).toBe(ChildThatShouldNotUnmount);
+    expect(actual.children[2].type).toBe(Child);
+
+    jest.resetAllMocks();
+  });
+
+  test("children should be ignored when explicit ones are defined", () => {
+    const Wrapper = () => <Child>a</Child>;
+    const Child = ({ children }) => children;
+
+    const actual = configuredReconcile(<Wrapper>b</Wrapper>);
+
+    expect(actual.children[0].children[0]).toBe("a");
+  });
 });

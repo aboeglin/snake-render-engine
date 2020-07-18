@@ -1,6 +1,9 @@
 import Sprite from "./sprite";
-import { traverse } from "../core";
+import { reconcile } from "../core";
+import { createElement } from "../create-element";
 import { createClock } from "../clock";
+
+/** @jsx createElement */
 
 const getTime = () => 500;
 const clock = createClock(getTime);
@@ -10,7 +13,7 @@ const lifecycles = {
 };
 const config = { clock, lifecycles };
 
-const configuredTraverse = traverse(config);
+const configuredReconcile = reconcile(config);
 
 describe("Sprite", () => {
   test("It should have a Sprite function", () => {
@@ -19,7 +22,6 @@ describe("Sprite", () => {
 
   test("The Sprite function should build a sprite js object", () => {
     const expected = {
-      __internal: expect.anything(),
       type: "SPRITE",
       x: 0,
       y: 0,
@@ -29,25 +31,25 @@ describe("Sprite", () => {
       texture: {
         width: 100,
         height: 100,
-        data: []
+        data: [],
       },
       children: [],
     };
 
-    const actual = configuredTraverse(null, Sprite({
-      x: 0,
-      y: 0,
-      z: 0,
-      width: 5,
-      height: 5,
-      children: [],
-      // TODO: verify that texture is complete
-      texture: {
-        width: 100,
-        height: 100,
-        data: []
-      }
-    }));
+    const actual = configuredReconcile(
+      <Sprite
+        x={0}
+        y={0}
+        z={0}
+        width={5}
+        height={5}
+        texture={{
+          width: 100,
+          height: 100,
+          data: [],
+        }}
+      />
+    );
 
     expect(actual).toEqual(expected);
   });

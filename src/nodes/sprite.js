@@ -1,6 +1,5 @@
-import { Node } from "../node";
-
-const Sprite = Node((props) => ({
+// TODO: Should add events ?
+const Sprite = (props) => ({
   type: "SPRITE",
   x: props.x,
   y: props.y,
@@ -9,6 +8,11 @@ const Sprite = Node((props) => ({
   width: props.width,
   height: props.height,
   children: props.children,
-}));
+});
+
+Object.defineProperty(Sprite, "_system", {
+  value: true,
+  configurable: true,
+});
 
 export default Sprite;
