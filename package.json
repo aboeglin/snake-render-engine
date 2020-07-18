@@ -1,9 +1,9 @@
 {
   "name": "snake-render-engine",
-  "version": "1.0.0--alpha-2",
+  "version": "0.0.1--alpha-2",
   "author": "Arnaud Boeglin",
   "license": "MIT",
-  "description": "2D render engine for the game",
+  "description": "Functional 2D render engine",
   "source": "src/index.js",
   "main": "dist/sre.js",
   "module": "dist/sre.module.js",
