@@ -176,7 +176,7 @@ describe("core", () => {
         setState(true);
       });
 
-      return !state ? createElement(Child1) : createElement(Child2);
+      return !state ? <Child1 /> : <Child2 />;
     };
 
     const Child1 = (_, { mounted }) => {
@@ -193,7 +193,7 @@ describe("core", () => {
       mounted(cb);
     };
 
-    configuredReconcile(createElement(Parent));
+    configuredReconcile(<Parent />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
@@ -206,14 +206,14 @@ describe("core", () => {
     jest.useFakeTimers();
     const mountedFn = jest.fn();
 
-    const Wrapper = () => createElement(Child, { value: 18 });
+    const Wrapper = () => <Child value={18} />;
 
     const Child = ({ value }, { setState, mounted }) => {
       mounted(() => {
         setState(value);
       });
 
-      return createElement(GrandChild, { value });
+      return <GrandChild value={value} />;
     };
 
     const GrandChild = (_, { mounted, state }) => {
@@ -222,7 +222,7 @@ describe("core", () => {
       return state;
     };
 
-    configuredReconcile(createElement(Wrapper));
+    configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(mountedFn).toHaveBeenCalledTimes(1);
@@ -238,16 +238,16 @@ describe("core", () => {
         setState({ child: false });
       });
 
-      return state.child ? createElement(WillUnmount) : null;
+      return state.child ? <WillUnmount /> : null;
     };
 
-    const Wrapper = () => createElement(ANode);
+    const Wrapper = () => <ANode />;
 
     const WillUnmount = (_, { unmounted }) => {
       unmounted(unmountedFn);
     };
 
-    configuredReconcile(createElement(Wrapper));
+    configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(unmountedFn).toHaveBeenCalledTimes(1);
@@ -258,18 +258,16 @@ describe("core", () => {
     jest.useFakeTimers();
     const unmountedFn = jest.fn();
 
-    const Wrapper = () => createElement(ANode);
+    const Wrapper = () => <ANode />;
 
-    const ANode = jest.fn((_, { unmounted, setState, state, mounted }) => {
+    const ANode = jest.fn((_, { unmounted, setState, mounted }) => {
       mounted(() => {
         setState("Trigger update");
       });
       unmounted(unmountedFn);
     });
 
-    const wrapper = createElement(Wrapper, { show: true });
-
-    configuredReconcile(wrapper);
+    configuredReconcile(<Wrapper show={true} />);
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL + 1);
 
     expect(unmountedFn).not.toHaveBeenCalled();
@@ -278,15 +276,17 @@ describe("core", () => {
   });
 
   test("reconcile should resolve the children correctly", () => {
-    const Parent = ({ stuff }) =>
-      createElement(
-        Child,
-        {},
-        stuff.map((x) => createElement(GrandChild, {}, x))
-      );
+    const Parent = ({ stuff }) => (
+      <Child>
+        {stuff.map((x) => (
+          <GrandChild>{x}</GrandChild>
+        ))}
+      </Child>
+    );
+
     const Child = ({ children }) => children;
     const GrandChild = ({ children }) => children;
-    const Scene = () => createElement(Parent, { stuff: ["a", "b"] });
+    const Scene = () => <Parent stuff={["a", "b"]} />;
 
     const expected = {
       type: Scene,
@@ -317,17 +317,14 @@ describe("core", () => {
       ],
     };
 
-    const actual = configuredReconcile(createElement(Scene));
+    const actual = configuredReconcile(<Scene />);
     expect(actual).toEqual(expected);
   });
 
   test("state should not be shared for different elements", () => {
     jest.useFakeTimers();
 
-    const Wrapper = () => [
-      createElement(StateOwner, { value: 3 }, []),
-      createElement(StateOwner, { value: 28 }, []),
-    ];
+    const Wrapper = () => [<StateOwner value={3} />, <StateOwner value={28} />];
 
     const StateOwner = ({ value }, { setState, state, mounted }) => {
       mounted(() => {
@@ -336,7 +333,7 @@ describe("core", () => {
       return state;
     };
 
-    const actual = configuredReconcile(createElement(Wrapper, {}, []));
+    const actual = configuredReconcile(<Wrapper />);
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
     expect(actual.children[0].children).toBe(3);
@@ -351,15 +348,14 @@ describe("core", () => {
       mounted(() => {
         setState(15);
       });
-      return createElement(StateOwner, { value: state });
+      return <StateOwner value={state} />;
     };
 
     const StateOwner = ({ value }) => {
       return value;
     };
 
-    const wrapper = createElement(Wrapper);
-    const actual = configuredReconcile(wrapper);
+    const actual = configuredReconcile(<Wrapper />);
 
     expect(actual.children[0].children).toBe(2);
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
@@ -370,14 +366,14 @@ describe("core", () => {
     jest.useFakeTimers();
     let actual = null;
 
-    const Wrapper = () => createElement(StateDude);
+    const Wrapper = () => <StateDude />;
 
     const StateDude = (
       _,
       { setState, mounted, state = { mounted: false } }
     ) => {
       mounted(() => setState({ mounted: true }));
-      return createElement(Child, { mounted: state.mounted });
+      return <Child mounted={state.mounted} />;
     };
 
     const Child = () => {};
@@ -403,8 +399,7 @@ describe("core", () => {
       key: undefined,
     };
 
-    const wrapper = createElement(Wrapper);
-    actual = configuredReconcile(wrapper);
+    actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(actual).toEqual(expected);
@@ -416,8 +411,8 @@ describe("core", () => {
     let actual = null;
 
     const Wrapper = () => [
-      createElement(Child, { value: 18, delay: 199 }),
-      createElement(Child, { value: 27, delay: 0 }),
+      <Child value={18} delay={199} />,
+      <Child value={27} delay={0} />,
     ];
 
     const Child = ({ value, delay }, { state, setState, mounted }) => {
@@ -430,7 +425,7 @@ describe("core", () => {
       return state;
     };
 
-    actual = configuredReconcile(createElement(Wrapper));
+    actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
@@ -460,17 +455,14 @@ describe("core", () => {
 
   test("updates should not recompute sparks that have already been updated the same batch should update the same spark twice", () => {
     jest.useFakeTimers();
-    const Wrapper = () => [
-      createElement(Child, { value: 18 }),
-      createElement(Child, { value: 27 }),
-    ];
+    const Wrapper = () => [<Child value={18} />, <Child value={27} />];
 
     const Child = ({ value }, { setState, mounted }) => {
       mounted(() => {
         setState(value);
       });
 
-      return createElement(GrandChild, { value });
+      return <GrandChild value={value} />;
     };
 
     const GrandChild = jest.fn(({ value }, { mounted, setState, state }) => {
@@ -481,7 +473,7 @@ describe("core", () => {
       return state;
     });
 
-    const actual = configuredReconcile(createElement(Wrapper));
+    const actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(GrandChild).toHaveBeenCalledTimes(4);
@@ -496,14 +488,14 @@ describe("core", () => {
       mounted(() => {
         setState(28);
       });
-      return createElement(Child, { value: state });
+      return <Child value={state} />;
     };
 
     const Child = jest.fn(({ value }) => {
       return value;
     });
 
-    const actual = configuredReconcile(createElement(Wrapper));
+    const actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
@@ -518,14 +510,14 @@ describe("core", () => {
       mounted(() => {
         setState(29);
       });
-      return createElement(Child, { value: 28 });
+      return <Child value={28} />;
     };
 
     const Child = jest.fn(({ value }) => {
       return value;
     });
 
-    const actual = configuredReconcile(createElement(Wrapper));
+    const actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
