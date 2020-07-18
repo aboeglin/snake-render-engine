@@ -23,14 +23,14 @@ export const createColorProgram = (gl) => {
   program.aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
 
   // TODO: Add proper error handling
-  if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
-    console.log(gl.getShaderInfoLog(vs));
+  // if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
+  //   console.log(gl.getShaderInfoLog(vs));
 
-  if (!gl.getShaderParameter(fsc, gl.COMPILE_STATUS))
-    console.log(gl.getShaderInfoLog(fsc));
+  // if (!gl.getShaderParameter(fsc, gl.COMPILE_STATUS))
+  //   console.log(gl.getShaderInfoLog(fsc));
 
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-    console.log(gl.getProgramInfoLog(program));
+  // if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+  //   console.log(gl.getProgramInfoLog(program));
 
   return program;
 };
@@ -55,14 +55,14 @@ export const createTextureProgram = (gl) => {
   program.aTextureCoord = gl.getAttribLocation(program, "aTextureCoord");
 
   // TODO: Add proper error handling
-  if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
-    console.log(gl.getShaderInfoLog(vs));
+  // if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS))
+  //   console.log(gl.getShaderInfoLog(vs));
 
-  if (!gl.getShaderParameter(fst, gl.COMPILE_STATUS))
-    console.log(gl.getShaderInfoLog(fst));
+  // if (!gl.getShaderParameter(fst, gl.COMPILE_STATUS))
+  //   console.log(gl.getShaderInfoLog(fst));
 
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-    console.log(gl.getProgramInfoLog(program));
+  // if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+  //   console.log(gl.getProgramInfoLog(program));
 
   return program;
 };
