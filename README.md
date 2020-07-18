@@ -3,19 +3,31 @@
 
 # Snake Render Engine
 
-# Concepts
-## Node
-A Node is the blueprint that contains the rendering logic
-of something to be displayed ( eg: Snake Node would render
-the head, tail, and handle the position of its elements ).
+Snake Render Engine is a 2D render engine based on webgl with a functional API analog to the one of the well known react UI library. It also supports jsx syntax and is component based.
 
-## NodeElement
-A NodeElement is an "instance" of a Node. The node has
-been called with a set of props that will be resolved
-by the traverse function.
+## Gettings started
 
-## Resolver
-When creating a NodeElement, the returned value is a
-function, that when called will "resolve" the NodeElement
-and return an object.
+Here is a minimal example that highlights how to run it.
 
+```javascript
+// In order to define components we need to import SRE
+import SRE, { initRenderer, initWithRenderer, Rect } from "sre";
+
+// Get the host canvas where the engine will run
+const canvas = document.getElementById("canvas");
+const height = canvas.height;
+const width = canvas.width;
+
+const gl = canvas.getContext("webgl");
+
+const render = initRenderer({ gl, width, height });
+const run = initWithRenderer(canvas, render);
+
+// Define a Scene Node that renders a simple rect and logs click events
+const Scene = () => (
+  <Rect x={320} y={200} z={0} width={640} height={100} onClick={console.log} />
+);
+
+// Start it
+run(<Scene />);
+```

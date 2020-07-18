@@ -14,9 +14,6 @@ export const Spark = (vnode) => {
   let _dirty = true;
   let _lastRender = null;
 
-  // const getProps = () => props;
-  // const getOldProps = () => oldProps;
-
   const setState = (newState) => {
     nextState = newState;
     _dirty = true;
