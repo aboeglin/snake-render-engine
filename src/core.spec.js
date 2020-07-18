@@ -532,14 +532,14 @@ describe("core", () => {
       mounted(() => {
         setState(29);
       });
-      return createElement(Child, { value: state });
+      return <Child value={state} />;
     };
 
     const Child = jest.fn(({ value }) => {
       return value;
     });
 
-    const actual = configuredReconcile(createElement(Wrapper));
+    const actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
@@ -555,9 +555,11 @@ describe("core", () => {
         setState(29);
       });
 
-      return state === 28
-        ? createElement(Child, { value: 28 })
-        : createElement(Child, { value: 28, valueFromState: state });
+      return state === 28 ? (
+        <Child value={28} />
+      ) : (
+        <Child value={28} valueFromState={state} />
+      );
     };
 
     const Child = jest.fn(({ value, valueFromState }) => ({
@@ -565,7 +567,7 @@ describe("core", () => {
       valueFromState,
     }));
 
-    const actual = configuredReconcile(createElement(Wrapper));
+    const actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
@@ -584,16 +586,14 @@ describe("core", () => {
         setState(2);
       });
 
-      return state === 1
-        ? [createElement(Child)]
-        : [createElement(Child), createElement(Child)];
+      return state === 1 ? [<Child />] : [<Child />, <Child />];
     };
 
     const Child = (_, { mounted }) => {
       mounted(mountedFn);
     };
 
-    const actual = configuredReconcile(createElement(Wrapper));
+    const actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
@@ -612,9 +612,7 @@ describe("core", () => {
         setState(1);
       });
 
-      return state === 1
-        ? [createElement(Child)]
-        : [createElement(Child), createElement(ChildThatUnmounts)];
+      return state === 1 ? [<Child />] : [<Child />, <ChildThatUnmounts />];
     };
 
     const ChildThatUnmounts = (_, { unmounted }) => {
@@ -623,7 +621,7 @@ describe("core", () => {
 
     const Child = () => {};
 
-    const actual = configuredReconcile(createElement(Wrapper));
+    const actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
@@ -645,12 +643,8 @@ describe("core", () => {
       });
 
       return state === 1
-        ? [createElement(Child), createElement(Child), createElement(Child)]
-        : [
-            createElement(Child),
-            createElement(ChildThatUnmounts),
-            createElement(Child),
-          ];
+        ? [<Child />, <Child />, <Child />]
+        : [<Child />, <ChildThatUnmounts />, <Child />];
     };
 
     const ChildThatUnmounts = (_, { unmounted }) => {
@@ -659,7 +653,7 @@ describe("core", () => {
 
     const Child = () => {};
 
-    configuredReconcile(createElement(Wrapper));
+    configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
 
