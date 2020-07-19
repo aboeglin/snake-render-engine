@@ -1,3 +1,6 @@
 node_modules
 coverage
 __diff_output__
+dist
+.cache
+.npmrc

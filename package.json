@@ -1,16 +1,26 @@
 {
-  "name": "render-engine",
-  "version": "1.0.0",
-  "description": "2D render engine for the game",
-  "main": "index.js",
+  "name": "snake-render-engine",
+  "version": "0.0.1--alpha-2",
   "author": "Arnaud Boeglin",
   "license": "MIT",
+  "description": "Functional 2D render engine",
+  "source": "src/index.js",
+  "main": "dist/sre.js",
+  "module": "dist/sre.module.js",
+  "umd:main": "dist/sre.umd.js",
+  "unpkg": "dist/sre.min.js",
   "devDependencies": {
+    "@babel/core": "^7.10.3",
+    "@babel/plugin-transform-react-jsx": "^7.10.4",
+    "babel-jest": "^26.1.0",
+    "gh-pages": "^3.1.0",
     "gl": "^4.3.3",
-    "jest": "^24.8.0",
+    "jest": "^26.1.0",
     "jest-image-snapshot": "^2.9.0",
+    "microbundle": "^0.12.2",
     "ndarray": "^1.0.18",
-    "nps": "^5.9.5",
+    "nps": "^5.9.12",
+    "parcel-bundler": "^1.12.4",
     "pngjs": "^3.4.0",
     "prettier": "^1.18.2",
     "raf-stub": "^3.0.0",
@@ -19,5 +29,8 @@
   "dependencies": {
     "gl-matrix": "^3.1.0",
     "ramda": "^0.26.1"
+  },
+  "alias": {
+    "sre": "./src"
   }
 }

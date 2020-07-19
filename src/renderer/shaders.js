@@ -1,4 +1,4 @@
-const VERTEX_SHADER = `
+export const VERTEX_SHADER = `
 precision mediump float;
 attribute vec3 aVertexPosition;
 attribute vec2 aTextureCoord;
@@ -13,7 +13,7 @@ void main() {
 }
 `;
 
-const FRAGMENT_SHADER_COLOR = `
+export const FRAGMENT_SHADER_COLOR = `
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -25,7 +25,7 @@ void main() {
 }
 `;
 
-const FRAGMENT_SHADER_TEXTURE = `
+export const FRAGMENT_SHADER_TEXTURE = `
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -39,9 +39,3 @@ void main() {
   // gl_FragColor = vec4(1.0, 1.0, 0, 1.0);
 }
 `;
-
-module.exports = {
-  FRAGMENT_SHADER_COLOR,
-  FRAGMENT_SHADER_TEXTURE,
-  VERTEX_SHADER
-};

@@ -1,0 +1,30 @@
+{
+    "plugins": [
+        [
+            "@babel/plugin-transform-react-jsx",
+            {
+                "throwIfNamespace": false, // defaults to true
+                "runtime": "classic", // defaults to classic
+                "importSource": "sre",
+                "pragma": "SRE.createElement"
+            }
+        ]
+    ],
+    "env": {
+        "test": {
+            "presets": [
+                [
+                    "@babel/preset-env",
+                    {
+                        "targets": {
+                            "node": "current"
+                        }
+                    }
+                ]
+            ],
+            "plugins": [
+                "@babel/plugin-transform-modules-commonjs"
+            ]
+        }
+    }
+}

@@ -22,35 +22,13 @@ jobs:
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-# name: Main
 
-# on: [push]
-
-# jobs:
-#   test:
-#     runs-on: ubuntu-latest
-
-#     strategy:
-#       matrix:
-#         node-version: [12.x]
-
-#     steps:
-#       - uses: actions/checkout@v2
-#       - run: sudo apt-get -y --force-yes install ubuntu-drivers-common
-#       - run: sudo apt-get -y --force-yes install x-window-system
-#       - run: sudo apt-get install -y --force-yes build-essential libxi-dev libglu1-mesa-dev libglew-dev pkg-config
-#       - run: sudo ubuntu-drivers autoinstall
-#       - uses: openrndr/setup-opengl@v1
-# #      - uses: GabrielBB/xvfb-action@v1.2
-#       - name: Use Node.js ${{ matrix.node-version }}
-#         uses: actions/setup-node@v1
-#         with:
-#           node-version: ${{ matrix.node-version }}
-#       - run: npm install
-#       - run: xvfb-run --auto-servernum --server-num=1 -s "-ac -screen 0 128x128x24" which glxinfo
-#       - run: xvfb-run --auto-servernum --server-num=1 -s "-ac -screen 0 128x128x24" ./node_modules/.bin/nps test.coverage
-# #      - run: ./node_modules/.bin/nps test.coverage
-#       - name: Coveralls
-#         uses: coverallsapp/github-action@master
-#         with:
-#           github-token: ${{ secrets.GITHUB_TOKEN }}
+  deploy-demo:
+    if: github.ref == 'refs/heads/master'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm install
+      - run: ./node_modules/.bin/nps demo.build
+      - run: ./node_modules/.bin/nps demo.publish
