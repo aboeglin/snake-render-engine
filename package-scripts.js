@@ -12,18 +12,21 @@ module.exports = {
         script: "parcel --out-dir demo/dist demo/index.html",
         description: "runs demo",
       },
-      build: {
-        script: "parcel build --out-dir demo/dist demo/index.html",
-        description: "runs demo",
-      },
-      publish: {
-        script: "gh-pages -d demo/dist",
-        description: "publish demo",
-      },
+      ci: {
+        build: {
+          script:
+            "parcel build --public-url 'https://aboeglin.github.io/snake-render-engine/' --out-dir demo/dist demo/index.html",
+          description: "runs demo",
+        },
+        publish: {
+          script: "gh-pages -d demo/dist",
+          description: "publish demo",
+        },
+      }
     },
     clean: {
       description: "delete build assets",
-      script: "rm -r dist/; rm -r demo/dist/; rm -r coverage/; rm -r .cache;"
-    }
+      script: "rm -r dist/; rm -r demo/dist/; rm -r coverage/; rm -r .cache;",
+    },
   },
 };

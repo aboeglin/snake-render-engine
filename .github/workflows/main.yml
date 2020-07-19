@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: npm install
-      - run: ./node_modules/.bin/nps demo.build
+      - run: ./node_modules/.bin/nps demo.ci.build
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
