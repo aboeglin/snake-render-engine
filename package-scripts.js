@@ -12,6 +12,14 @@ module.exports = {
         script: "parcel --out-dir demo/dist demo/index.html",
         description: "runs demo",
       },
+      build: {
+        script: "parcel build --out-dir demo/dist demo/index.html",
+        description: "runs demo",
+      },
+      publish: {
+        script: "gh-pages -d demo/dist",
+        description: "publish demo",
+      },
     },
     clean: {
       description: "delete build assets",
