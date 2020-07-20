@@ -2,7 +2,7 @@ import { curry, pipe } from "ramda";
 import { Spark } from "./spark";
 import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
-import { BATCH_UPDATE_INTERVAL } from "./constants";
+import constants from "./constants";
 
 const defaultConfig = {
   clock: createClock(Date.now),
@@ -27,7 +27,7 @@ export const pushUpdate = (spark) => {
   processQueue();
 };
 
-const processQueue = throttle(BATCH_UPDATE_INTERVAL, () => {
+const processQueue = throttle(constants.BATCH_UPDATE_INTERVAL, () => {
   let sparkToUpdate;
   while ((sparkToUpdate = updateQueue.shift())) {
     if (sparkToUpdate.isDirty()) {

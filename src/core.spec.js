@@ -3,7 +3,7 @@ import { replaceRaf } from "raf-stub";
 import { reconcile, initWithRenderer } from "./core";
 import { createClock } from "./clock";
 import { createElement } from "./create-element";
-import { BATCH_UPDATE_INTERVAL } from "./constants";
+import constants from "./constants";
 
 /** @jsx createElement */
 
@@ -195,7 +195,7 @@ describe("core", () => {
 
     configuredReconcile(<Parent />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
@@ -224,7 +224,7 @@ describe("core", () => {
 
     configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(mountedFn).toHaveBeenCalledTimes(1);
     jest.resetAllMocks();
   });
@@ -249,7 +249,7 @@ describe("core", () => {
 
     configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(unmountedFn).toHaveBeenCalledTimes(1);
     jest.resetAllMocks();
   });
@@ -268,7 +268,7 @@ describe("core", () => {
     });
 
     configuredReconcile(<Wrapper show={true} />);
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL + 1);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL + 1);
 
     expect(unmountedFn).not.toHaveBeenCalled();
     expect(ANode).toHaveBeenCalledTimes(2);
@@ -334,7 +334,7 @@ describe("core", () => {
     };
 
     const actual = configuredReconcile(<Wrapper />);
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(actual.children[0].children).toBe(3);
     expect(actual.children[1].children).toBe(28);
@@ -358,7 +358,7 @@ describe("core", () => {
     const actual = configuredReconcile(<Wrapper />);
 
     expect(actual.children[0].children).toBe(2);
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(actual.children[0].children).toBe(15);
   });
 
@@ -401,7 +401,7 @@ describe("core", () => {
 
     actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(actual).toEqual(expected);
     jest.resetAllMocks();
   });
@@ -427,7 +427,7 @@ describe("core", () => {
 
     actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     const expected = {
       type: Wrapper,
@@ -475,7 +475,7 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(GrandChild).toHaveBeenCalledTimes(4);
     expect(actual.children[0].children[0].children).toBe(18);
     expect(actual.children[1].children[0].children).toBe(27);
@@ -497,7 +497,7 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
     expect(actual.children[0].children).toBe(28);
     jest.resetAllMocks();
@@ -519,7 +519,7 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
     expect(actual.children[0].children).toBe(28);
     jest.resetAllMocks();
@@ -541,7 +541,7 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
     expect(actual.children[0].children).toBe(29);
     jest.resetAllMocks();
@@ -569,7 +569,7 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
     expect(actual.children[0].children).toEqual([
       { value: 28, valueFromState: 29, children: [] },
@@ -595,7 +595,7 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(mountedFn).toHaveBeenCalledTimes(2);
     expect(actual.children.length).toBe(2);
@@ -623,7 +623,7 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(unmountedFn).toHaveBeenCalledTimes(1);
     expect(actual.children.length).toBe(1);
@@ -655,7 +655,7 @@ describe("core", () => {
 
     configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(unmountedFn).toHaveBeenCalledTimes(1);
 
@@ -694,7 +694,7 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Wrapper />);
 
-    jest.advanceTimersByTime(BATCH_UPDATE_INTERVAL);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(unmountedFn).not.toHaveBeenCalled();
     expect(mountedFn).toHaveBeenCalledTimes(1);
