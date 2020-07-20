@@ -2,11 +2,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/aboeglin/snake-render-engine/badge.svg?branch=master)](https://coveralls.io/github/aboeglin/snake-render-engine?branch=master)
 
 # Snake Render Engine
-
 Snake Render Engine is a 2D render engine based on webgl with a functional API analog to the one of the well known react UI library. It also supports jsx syntax and is component based.
 
 ## Gettings started
-
 Here is a minimal example that highlights how to run it.
 
 ```javascript
@@ -31,3 +29,6 @@ const Scene = () => (
 // Start it
 run(<Scene />);
 ```
+
+## Demos
+Demos are available here : [demos](https://aboeglin.github.io/snake-render-engine/)

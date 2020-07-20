@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [14.x]
+        node-version: [12.x] # Back to 12 because 14 takes forever to build for some reason.
 
     steps:
       - uses: actions/checkout@v2
