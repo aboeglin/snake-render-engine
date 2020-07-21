@@ -133,11 +133,9 @@ export const reconcile = curry((config, vnode) => {
   return vnode;
 });
 
-const findVNodeByKey = curry((children, fallback, key) => {
-  return key !== undefined
-    ? children.find((x) => x.key === key) || fallback
-    : fallback;
-});
+const findVNodeByKey = curry((children, fallback, key) =>
+  key !== undefined ? children.find((x) => x.key === key) || fallback : fallback
+);
 
 export const initWithRenderer = (container, render, config = defaultConfig) => {
   // We need to closure the vdom, so that event handlers act on what is currently rendered
