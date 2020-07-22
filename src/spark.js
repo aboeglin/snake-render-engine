@@ -13,10 +13,10 @@ export const Spark = (vnode) => {
   let _vnode = vnode;
   let _dirty = true;
   let _lastRender = null;
+  let _dynamic = false;
 
   const setState = (newState) => {
     nextState = newState;
-    _dirty = true;
 
     pushUpdate(_this);
   };
@@ -40,11 +40,25 @@ export const Spark = (vnode) => {
 
   const getVNode = () => _vnode;
 
+  const dynamic = (d) => {
+    if (!_dynamic) {
+      pushUpdate(_this);
+    }
+    _dynamic = d;
+  };
+
+  const isDynamic = () => _dynamic;
+
   const render = (vnode) => {
     _dirty = false;
     props = vnode.props;
 
-    if (oldProps && arePropsEqual(oldProps, props) && state === nextState) {
+    if (
+      !_dynamic &&
+      oldProps &&
+      arePropsEqual(oldProps, props) &&
+      state === nextState
+    ) {
       return _lastRender;
     }
 
@@ -61,12 +75,16 @@ export const Spark = (vnode) => {
               setState,
               mounted,
               unmounted,
+              dynamic,
             }
           )
         : vnode.children);
   };
 
   const isDirty = () => _dirty;
+  const makeDirty = () => {
+    _dirty = true;
+  };
 
   return Object.assign(_this, {
     setState,
@@ -76,6 +94,8 @@ export const Spark = (vnode) => {
     render,
     getVNode,
     isDirty,
+    makeDirty,
+    isDynamic,
   });
 };
 

@@ -23,17 +23,26 @@ const throttle = curry((delay, fn) => {
 const updateQueue = [];
 
 export const pushUpdate = (spark) => {
+  spark.makeDirty();
   updateQueue.push(spark);
   processQueue();
 };
 
 const processQueue = throttle(constants.BATCH_UPDATE_INTERVAL, () => {
+  const dynamicSparks = [];
   let sparkToUpdate;
   while ((sparkToUpdate = updateQueue.shift())) {
+    if (sparkToUpdate.isDynamic()) {
+      dynamicSparks.push(sparkToUpdate);
+    }
     if (sparkToUpdate.isDirty()) {
       reconcile({}, sparkToUpdate.getVNode());
     }
   }
+
+  // When everything is processed and the queue is empty, we already push the dynamic sparks for the next iteration
+  // We need the timeout to avoid the recursion
+  setTimeout(() => dynamicSparks.forEach(pushUpdate), 0);
 });
 
 const sparkFromNode = (vnode) => {

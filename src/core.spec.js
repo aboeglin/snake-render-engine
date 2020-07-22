@@ -714,4 +714,20 @@ describe("core", () => {
 
     expect(actual.children[0].children[0]).toBe("a");
   });
+
+  test("nodes should be able to declare themselves as dynamic, making them being re-rendered as often as possible", () => {
+    jest.useFakeTimers();
+    const DynamicNode = jest.fn((_, { dynamic }) => {
+      dynamic(true);
+    });
+
+    configuredReconcile(<DynamicNode />); // First render
+
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL); // Second render
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL); // Third render
+
+    expect(DynamicNode).toHaveBeenCalledTimes(3);
+
+    jest.resetAllMocks();
+  });
 });
