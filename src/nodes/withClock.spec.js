@@ -55,4 +55,50 @@ describe("withClock", () => {
 
     jest.resetAllMocks();
   });
+
+  test("withClock should render children", () => {
+    jest.useFakeTimers();
+
+    const Snake = (_, { time }) => {
+      return {
+        type: "ANY",
+        x: 2,
+        y: 3,
+        z: time,
+      };
+    };
+
+    const SnakeWithTime = withClock(getTime, Snake);
+
+    const Scene = () => <SnakeWithTime />;
+
+    const vtree = configuredReconcile(<Scene />);
+
+    const expected = {
+      type: Scene,
+      props: {},
+      children: [
+        {
+          type: expect.any(Function), // Clock
+          props: {},
+          children: [
+            {
+              type: Snake,
+              props: { time: 6 },
+              children: [
+                { type: "ANY", x: 2, y: 3, z: undefined, children: [] },
+              ],
+              key: undefined,
+            },
+          ],
+          key: undefined,
+        },
+      ],
+      key: undefined,
+    };
+
+    expect(vtree).toEqual(expected);
+
+    jest.resetAllMocks();
+  });
 });
