@@ -4,6 +4,7 @@ import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
 import constants from "./constants";
 
+// TODO: Get rid of unused config
 const defaultConfig = {
   clock: createClock(Date.now),
 };
@@ -39,7 +40,6 @@ const processQueue = throttle(constants.BATCH_UPDATE_INTERVAL, () => {
       reconcile({}, sparkToUpdate.getVNode());
     }
   }
-
   // When everything is processed and the queue is empty, we already push the dynamic sparks for the next iteration
   // We need the timeout to avoid the recursion
   setTimeout(() => dynamicSparks.forEach(pushUpdate), 0);
