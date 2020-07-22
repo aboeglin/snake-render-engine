@@ -31,7 +31,7 @@ jobs:
   deploy-demo:
     if: github.ref == 'refs/heads/master'
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ env.node-version }}
@@ -55,7 +55,7 @@ jobs:
   publish:
     if: github.ref == 'refs/heads/master'
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ env.node-version }}
