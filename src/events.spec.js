@@ -125,6 +125,32 @@ describe("events", () => {
     expect(clickHandler).toHaveBeenCalledWith(event);
   });
 
+  test("handleEvent should not throw if the node does not have a onClick event", () => {
+    const root = {
+      children: [
+        {
+          x: 50,
+          y: 50,
+          z: 0,
+          type: "RECT",
+          width: 100,
+          height: 100,
+          children: [],
+        },
+      ],
+    };
+
+    const event = {
+      type: "click",
+      x: 90,
+      y: 90,
+    };
+
+    expect(() => {
+      handleEvent(event, root);
+    }).not.toThrow();
+  });
+
   test("fromDOMEvent should build an event object with projected coordinates", () => {
     const domEvent = {
       type: "click",

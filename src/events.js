@@ -19,7 +19,9 @@ export const handleEvent = curry((event, root) => {
     event.y >= minY &&
     event.y <= maxY
   ) {
-    root.onClick(event);
+    if (root.onClick) {
+      root.onClick(event);
+    }
   } else {
     forEach(handleEvent(event))(root.children);
   }
