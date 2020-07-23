@@ -410,8 +410,10 @@ describe("core", () => {
     jest.useFakeTimers();
     let actual = null;
 
+    const delay = constants.BATCH_UPDATE_INTERVAL - 1;
+
     const Wrapper = () => [
-      <Child value={18} delay={199} />,
+      <Child value={18} delay={delay} />,
       <Child value={27} delay={0} />,
     ];
 
@@ -435,7 +437,7 @@ describe("core", () => {
       children: [
         {
           type: Child,
-          props: { value: 18, delay: 199 },
+          props: { value: 18, delay },
           children: 18,
           key: undefined,
         },
