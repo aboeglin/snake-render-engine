@@ -113,6 +113,23 @@ describe("core", () => {
     );
   });
 
+  test("initWithRenderer should register keydown event handlers", () => {
+    const container = {
+      addEventListener: jest.fn(),
+    };
+
+    document.body.addEventListener = jest.fn();
+
+    const render = () => {};
+
+    initWithRenderer(container, render);
+
+    expect(document.body.addEventListener).toHaveBeenCalledWith(
+      "keydown",
+      expect.any(Function)
+    );
+  });
+
   test("initWithRenderer should wire event handlers after start", () => {
     let click = null;
     const expected = jest.fn();

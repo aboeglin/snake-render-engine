@@ -204,6 +204,59 @@ describe("events", () => {
     expect(keyPressHandler2).toHaveBeenCalledWith(event);
   });
 
+  test("handleEvent should call onGlobalKeyPress on node with keypress event object", () => {
+    const keyDownHandler = jest.fn();
+    const root = {
+      children: [
+        {
+          onGlobalKeyDown: keyDownHandler,
+          children: [],
+        },
+      ],
+    };
+
+    const event = {
+      type: "keydown",
+      modifiers: [],
+      key: "d",
+      keyCode: 100,
+    };
+
+    handleEvent(event, root);
+
+    expect(keyDownHandler).toHaveBeenCalledWith(event);
+  });
+
+  test("handleEvent should call onGlobalKeyPress on any node that defines it", () => {
+    const keyDownHandler1 = jest.fn();
+    const keyDownHandler2 = jest.fn();
+    const root = {
+      children: [
+        {
+          onGlobalKeyDown: keyDownHandler1,
+          children: [
+            {
+              onGlobalKeyDown: keyDownHandler2,
+              children: [],
+            },
+          ],
+        },
+      ],
+    };
+
+    const event = {
+      type: "keydown",
+      modifiers: [],
+      key: "d",
+      keyCode: 100,
+    };
+
+    handleEvent(event, root);
+
+    expect(keyDownHandler1).toHaveBeenCalledWith(event);
+    expect(keyDownHandler2).toHaveBeenCalledWith(event);
+  });
+
   test("fromDOMEvent should build an event object with projected coordinates", () => {
     const domEvent = {
       type: "click",
@@ -242,6 +295,31 @@ describe("events", () => {
     const actual = fromDOMEvent(container, domEvent);
     const expected = {
       type: "keypress",
+      modifiers: [],
+      key: "d",
+      keyCode: 100,
+    };
+
+    expect(actual).toEqual(expected);
+  });
+
+  test("fromDOMEvent should build an event object for key down events", () => {
+    const domEvent = {
+      type: "keydown",
+      altKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      key: "d",
+      keyCode: 100,
+      charCode: 100,
+      code: "KeyD",
+    };
+
+    const container = {};
+
+    const actual = fromDOMEvent(container, domEvent);
+    const expected = {
+      type: "keydown",
       modifiers: [],
       key: "d",
       keyCode: 100,

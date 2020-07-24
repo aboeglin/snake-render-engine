@@ -3,6 +3,7 @@ import { curry, forEach } from "ramda";
 const Events = {
   CLICK: "click",
   KEYPRESS: "keypress",
+  KEYDOWN: "keydown",
   UNKNOWN: "unknown",
 };
 
@@ -32,9 +33,11 @@ export const handleEvent = curry((event, root) => {
     } else {
       forEach(handleEvent(event))(root.children);
     }
-  } else if (event.type === Events.KEYPRESS) {
-    if (root.onGlobalKeyPress) {
+  } else {
+    if (event.type === Events.KEYPRESS && root.onGlobalKeyPress) {
       root.onGlobalKeyPress(event);
+    } else if (event.type === Events.KEYDOWN && root.onGlobalKeyDown) {
+      root.onGlobalKeyDown(event);
     }
 
     forEach(handleEvent(event))(root.children);
@@ -44,7 +47,7 @@ export const handleEvent = curry((event, root) => {
 export const fromDOMEvent = curry((container, event) => {
   if (event.type === Events.CLICK) {
     return fromClickEvent(container, event);
-  } else if (event.type === Events.KEYPRESS) {
+  } else if (event.type === Events.KEYPRESS || event.type === Events.KEYDOWN) {
     return fromKeyEvent(event);
   }
   return { type: Events.UNKNOWN };
