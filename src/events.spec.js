@@ -151,6 +151,59 @@ describe("events", () => {
     }).not.toThrow();
   });
 
+  test("handleEvent should call onGlobalKeyPress on node with keypress event object", () => {
+    const keyPressHandler = jest.fn();
+    const root = {
+      children: [
+        {
+          onGlobalKeyPress: keyPressHandler,
+          children: [],
+        },
+      ],
+    };
+
+    const event = {
+      type: "keypress",
+      modifiers: [],
+      key: "d",
+      keyCode: 100,
+    };
+
+    handleEvent(event, root);
+
+    expect(keyPressHandler).toHaveBeenCalledWith(event);
+  });
+
+  test("handleEvent should call onGlobalKeyPress on any node that defines it", () => {
+    const keyPressHandler1 = jest.fn();
+    const keyPressHandler2 = jest.fn();
+    const root = {
+      children: [
+        {
+          onGlobalKeyPress: keyPressHandler1,
+          children: [
+            {
+              onGlobalKeyPress: keyPressHandler2,
+              children: [],
+            },
+          ],
+        },
+      ],
+    };
+
+    const event = {
+      type: "keypress",
+      modifiers: [],
+      key: "d",
+      keyCode: 100,
+    };
+
+    handleEvent(event, root);
+
+    expect(keyPressHandler1).toHaveBeenCalledWith(event);
+    expect(keyPressHandler2).toHaveBeenCalledWith(event);
+  });
+
   test("fromDOMEvent should build an event object with projected coordinates", () => {
     const domEvent = {
       type: "click",
@@ -167,6 +220,46 @@ describe("events", () => {
       type: "click",
       x: 200,
       y: 100,
+    };
+
+    expect(actual).toEqual(expected);
+  });
+
+  test("fromDOMEvent should build an event object for key press events", () => {
+    const domEvent = {
+      type: "keypress",
+      altKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      key: "d",
+      keyCode: 100,
+      charCode: 100,
+      code: "KeyD",
+    };
+
+    const container = {};
+
+    const actual = fromDOMEvent(container, domEvent);
+    const expected = {
+      type: "keypress",
+      modifiers: [],
+      key: "d",
+      keyCode: 100,
+    };
+
+    expect(actual).toEqual(expected);
+  });
+
+  test("fromDOMEvent should return a default unknown event if type is not handled", () => {
+    const domEvent = {
+      type: "somethingnothandled",
+    };
+
+    const container = {};
+
+    const actual = fromDOMEvent(container, domEvent);
+    const expected = {
+      type: "unknown",
     };
 
     expect(actual).toEqual(expected);

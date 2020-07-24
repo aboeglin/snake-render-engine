@@ -167,6 +167,7 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
   };
 
   container.addEventListener("click", wireEvent);
+  document.body.addEventListener("keypress", wireEvent);
 
   return start;
 };

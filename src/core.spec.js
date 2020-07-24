@@ -81,7 +81,7 @@ describe("core", () => {
     expect(typeof initWithRenderer).toBe("function");
   });
 
-  test("initWithRenderer should register event handlers", () => {
+  test("initWithRenderer should register click event handlers", () => {
     const container = {
       addEventListener: jest.fn(),
     };
@@ -92,6 +92,23 @@ describe("core", () => {
 
     expect(container.addEventListener).toHaveBeenCalledWith(
       "click",
+      expect.any(Function)
+    );
+  });
+
+  test("initWithRenderer should register keypress event handlers", () => {
+    const container = {
+      addEventListener: jest.fn(),
+    };
+
+    document.body.addEventListener = jest.fn();
+
+    const render = () => {};
+
+    initWithRenderer(container, render);
+
+    expect(document.body.addEventListener).toHaveBeenCalledWith(
+      "keypress",
       expect.any(Function)
     );
   });
