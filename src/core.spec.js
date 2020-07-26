@@ -136,11 +136,7 @@ describe("core", () => {
 
     const ANode = () => ({
       type: "Node",
-      onClick: expected,
-      x: 5,
-      y: 5,
-      width: 10,
-      height: 10,
+      props: { onClick: expected, x: 5, y: 5, width: 10, height: 10 },
     });
 
     const container = {

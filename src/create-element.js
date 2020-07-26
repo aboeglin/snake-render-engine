@@ -1,3 +1,4 @@
+// Add tests for it
 export const createElement = (type, props = {}, children = []) => {
   if (!props) {
     props = {};

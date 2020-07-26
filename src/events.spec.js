@@ -1,18 +1,26 @@
 import { handleEvent, fromDOMEvent } from "./events";
+import { reconcile } from "./core";
+import Rect from "./nodes/rect";
+import { createElement } from "./create-element";
 
+/** @jsx createElement */
+
+// TODO: Rewrite tests with reconcile to have a real tree
+// TODO: Move global events to instance method instead.
 describe("events", () => {
   test("handleEvent should call the click handler of a Rect when clicked in", () => {
     const clickHandler = jest.fn();
-    const root = {
-      onClick: clickHandler,
-      x: 50,
-      y: 50,
-      z: 0,
-      type: "RECT",
-      width: 100,
-      height: 100,
-      children: [],
-    };
+    const root = reconcile(
+      {},
+      <Rect
+        onClick={clickHandler}
+        x={50}
+        y={50}
+        z={0}
+        width={100}
+        height={100}
+      />
+    );
 
     const event = {
       type: "click",
@@ -27,16 +35,17 @@ describe("events", () => {
 
   test("handleEvent should not call the click handler of a Rect when clicked outside", () => {
     const clickHandler = jest.fn();
-    const root = {
-      onClick: clickHandler,
-      x: 50,
-      y: 50,
-      z: 0,
-      type: "RECT",
-      width: 100,
-      height: 100,
-      children: [],
-    };
+    const root = reconcile(
+      {},
+      <Rect
+        onClick={clickHandler}
+        x={50}
+        y={50}
+        z={0}
+        width={100}
+        height={100}
+      />
+    );
 
     const event = {
       type: "click",
@@ -51,16 +60,17 @@ describe("events", () => {
 
   test("handleEvent should not call the click handler of a Rect when y axis is not in the bounds", () => {
     const clickHandler = jest.fn();
-    const root = {
-      onClick: clickHandler,
-      x: 50,
-      y: 50,
-      z: 0,
-      type: "RECT",
-      width: 100,
-      height: 100,
-      children: [],
-    };
+    const root = reconcile(
+      {},
+      <Rect
+        onClick={clickHandler}
+        x={50}
+        y={50}
+        z={0}
+        width={100}
+        height={100}
+      />
+    );
 
     const event = {
       type: "click",
@@ -75,16 +85,18 @@ describe("events", () => {
 
   test("handleEvent should call the event handler with the event object as parameter", () => {
     const clickHandler = jest.fn();
-    const root = {
-      onClick: clickHandler,
-      x: 50,
-      y: 50,
-      z: 0,
-      type: "RECT",
-      width: 100,
-      height: 100,
-      children: [],
-    };
+
+    const root = reconcile(
+      {},
+      <Rect
+        onClick={clickHandler}
+        x={50}
+        y={50}
+        z={0}
+        width={100}
+        height={100}
+      />
+    );
 
     const event = {
       type: "click",
@@ -99,20 +111,18 @@ describe("events", () => {
 
   test("handleEvent should call the event handler of a child in the tree that matches if the root node isn't matching", () => {
     const clickHandler = jest.fn();
-    const root = {
-      children: [
-        {
-          onClick: clickHandler,
-          x: 50,
-          y: 50,
-          z: 0,
-          type: "RECT",
-          width: 100,
-          height: 100,
-          children: [],
-        },
-      ],
-    };
+    const Root = () => (
+      <Rect
+        onClick={clickHandler}
+        x={50}
+        y={50}
+        z={0}
+        width={100}
+        height={100}
+      />
+    );
+
+    const root = reconcile({}, <Root />);
 
     const event = {
       type: "click",
@@ -126,19 +136,9 @@ describe("events", () => {
   });
 
   test("handleEvent should not throw if the node does not have a onClick event", () => {
-    const root = {
-      children: [
-        {
-          x: 50,
-          y: 50,
-          z: 0,
-          type: "RECT",
-          width: 100,
-          height: 100,
-          children: [],
-        },
-      ],
-    };
+    const Root = () => <Rect x={50} y={50} z={0} width={100} height={100} />;
+
+    const root = reconcile({}, <Root />);
 
     const event = {
       type: "click",
@@ -153,14 +153,13 @@ describe("events", () => {
 
   test("handleEvent should call onGlobalKeyPress on node with keypress event object", () => {
     const keyPressHandler = jest.fn();
-    const root = {
-      children: [
-        {
-          onGlobalKeyPress: keyPressHandler,
-          children: [],
-        },
-      ],
+    const Root = () => <KeyPressHandler />;
+
+    const KeyPressHandler = (_, { onGlobalKeyPress }) => {
+      onGlobalKeyPress(keyPressHandler);
     };
+
+    const root = reconcile({}, <Root />);
 
     const event = {
       type: "keypress",
@@ -177,19 +176,19 @@ describe("events", () => {
   test("handleEvent should call onGlobalKeyPress on any node that defines it", () => {
     const keyPressHandler1 = jest.fn();
     const keyPressHandler2 = jest.fn();
-    const root = {
-      children: [
-        {
-          onGlobalKeyPress: keyPressHandler1,
-          children: [
-            {
-              onGlobalKeyPress: keyPressHandler2,
-              children: [],
-            },
-          ],
-        },
-      ],
+
+    const Root = () => <KeyPressHandler1 />;
+
+    const KeyPressHandler1 = (_, { onGlobalKeyPress }) => {
+      onGlobalKeyPress(keyPressHandler1);
+      return <KeyPressHandler2 />;
     };
+
+    const KeyPressHandler2 = (_, { onGlobalKeyPress }) => {
+      onGlobalKeyPress(keyPressHandler2);
+    };
+
+    const root = reconcile({}, <Root />);
 
     const event = {
       type: "keypress",
@@ -204,16 +203,15 @@ describe("events", () => {
     expect(keyPressHandler2).toHaveBeenCalledWith(event);
   });
 
-  test("handleEvent should call onGlobalKeyPress on node with keypress event object", () => {
+  test("handleEvent should call onGlobalKeyDown on node with keypress event object", () => {
     const keyDownHandler = jest.fn();
-    const root = {
-      children: [
-        {
-          onGlobalKeyDown: keyDownHandler,
-          children: [],
-        },
-      ],
+    const Root = () => <KeyDownHandler />;
+
+    const KeyDownHandler = (_, { onGlobalKeyDown }) => {
+      onGlobalKeyDown(keyDownHandler);
     };
+
+    const root = reconcile({}, <Root />);
 
     const event = {
       type: "keydown",
@@ -230,19 +228,19 @@ describe("events", () => {
   test("handleEvent should call onGlobalKeyPress on any node that defines it", () => {
     const keyDownHandler1 = jest.fn();
     const keyDownHandler2 = jest.fn();
-    const root = {
-      children: [
-        {
-          onGlobalKeyDown: keyDownHandler1,
-          children: [
-            {
-              onGlobalKeyDown: keyDownHandler2,
-              children: [],
-            },
-          ],
-        },
-      ],
+
+    const Root = () => <KeyPressHandler1 />;
+
+    const KeyPressHandler1 = (_, { onGlobalKeyDown }) => {
+      onGlobalKeyDown(keyDownHandler1);
+      return <KeyPressHandler2 />;
     };
+
+    const KeyPressHandler2 = (_, { onGlobalKeyDown }) => {
+      onGlobalKeyDown(keyDownHandler2);
+    };
+
+    const root = reconcile({}, <Root />);
 
     const event = {
       type: "keydown",

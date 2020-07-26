@@ -157,7 +157,6 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
 
   const start = (vnode) => {
     tree = reconcile(config, vnode);
-
     renderLoop();
   };
 

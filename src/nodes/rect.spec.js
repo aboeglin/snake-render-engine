@@ -23,12 +23,7 @@ describe("Rect", () => {
   test("The Rect function should build a rect js object", () => {
     const expected = {
       type: "RECT",
-      x: 0,
-      y: 0,
-      z: 0,
-      width: 5,
-      height: 5,
-      onClick: undefined,
+      props: { x: 0, y: 0, z: 0, width: 5, height: 5, onClick: undefined },
       children: [],
     };
 
@@ -42,21 +37,18 @@ describe("Rect", () => {
   test("The Rect function should take children", () => {
     const expected = {
       type: "RECT",
-      x: 0,
-      y: 0,
-      z: 0,
-      width: 5,
-      height: 5,
-      onClick: undefined,
+      props: { x: 0, y: 0, z: 0, width: 5, height: 5, onClick: undefined },
       children: [
         {
           type: "RECT",
-          x: 0,
-          y: 0,
-          z: 0,
-          width: 15,
-          height: 15,
-          onClick: undefined,
+          props: {
+            x: 0,
+            y: 0,
+            z: 0,
+            width: 15,
+            height: 15,
+            onClick: undefined,
+          },
           children: [],
         },
       ],
@@ -93,11 +85,7 @@ describe("Rect", () => {
       children: [
         {
           type: "RECT",
-          x: 1,
-          y: 1,
-          z: 1,
-          width: 5,
-          height: 5,
+          props: { x: 1, y: 1, z: 1, width: 5, height: 5 },
           children: [],
         },
       ],

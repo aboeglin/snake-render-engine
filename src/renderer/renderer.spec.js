@@ -85,11 +85,7 @@ describe("renderer", () => {
     });
     const rect = {
       type: "RECT",
-      x: 72,
-      y: 39,
-      z: 0,
-      width: 80,
-      height: 14,
+      props: { x: 72, y: 39, z: 0, width: 80, height: 14 },
       children: [],
     };
 
@@ -112,15 +108,11 @@ describe("renderer", () => {
     });
     const scene = {
       type: "TRANSFORM",
-      rotation: 30,
+      rotation: 30, // TODO: move to props
       children: [
         {
           type: "RECT",
-          x: 72,
-          y: 39,
-          z: 0,
-          width: 80,
-          height: 14,
+          props: { x: 72, y: 39, z: 0, width: 80, height: 14 },
           children: [],
         },
       ],
@@ -145,27 +137,19 @@ describe("renderer", () => {
     });
     const scene = {
       type: "TRANSFORM",
-      rotation: 60,
+      rotation: 60, // TODO: move to props
       children: [
         {
           type: "RECT",
-          x: 72,
-          y: 39,
-          z: 0,
-          width: 80,
-          height: 14,
+          props: { x: 72, y: 39, z: 0, width: 80, height: 14 },
           children: [
             {
               type: "TRANSFORM",
-              rotation: 0,
+              rotation: 0, // TODO: move to props
               children: [
                 {
                   type: "RECT",
-                  x: 10,
-                  y: 40,
-                  z: 0,
-                  width: 20,
-                  height: 20,
+                  props: { x: 10, y: 40, z: 0, width: 20, height: 20 },
                 },
               ],
             },
@@ -198,25 +182,17 @@ describe("renderer", () => {
       children: [
         {
           type: "RECT",
-          x: 72,
-          y: 39,
-          z: 0,
-          width: 80,
-          height: 14,
+          props: { x: 72, y: 39, z: 0, width: 80, height: 14 },
           children: [
             {
               type: "TRANSFORM",
-              translationX: 10,
-              translationY: 10,
-              rotation: 30,
+              translationX: 10, // TODO: move to props
+              translationY: 10, // TODO: move to props
+              rotation: 30, // TODO: move to props
               children: [
                 {
                   type: "RECT",
-                  x: 10,
-                  y: 40,
-                  z: 0,
-                  width: 20,
-                  height: 20,
+                  props: { x: 10, y: 40, z: 0, width: 20, height: 20 },
                 },
               ],
             },
@@ -246,13 +222,8 @@ describe("renderer", () => {
     });
     const scene = {
       type: "SPRITE",
-      texture: image,
       children: [],
-      x: 40,
-      y: 40,
-      z: 0,
-      width: 40,
-      height: 40,
+      props: { texture: image, x: 40, y: 40, z: 0, width: 40, height: 40 },
     };
 
     render(scene);
@@ -272,26 +243,17 @@ describe("renderer", () => {
       height: VIEWPORT_HEIGHT,
     });
     const scene = {
+      props: {},
       children: [
         {
           type: "SPRITE",
-          texture: image,
           children: [],
-          x: 40,
-          y: 40,
-          z: 0,
-          width: 40,
-          height: 40,
+          props: { texture: image, x: 40, y: 40, z: 0, width: 40, height: 40 },
         },
         {
           type: "SPRITE",
-          texture: image,
           children: [],
-          x: 40,
-          y: 40,
-          z: 0,
-          width: 40,
-          height: 40,
+          props: { texture: image, x: 40, y: 40, z: 0, width: 40, height: 40 },
         },
       ],
     };

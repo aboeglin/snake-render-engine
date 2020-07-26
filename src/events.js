@@ -16,10 +16,10 @@ const Events = {
 // such as RECT, SPRITE, ...
 export const handleEvent = curry((event, root) => {
   if (event.type === Events.CLICK) {
-    const minX = root.x - root.width / 2;
-    const maxX = minX + root.width;
-    const minY = root.y - root.height / 2;
-    const maxY = minY + root.height;
+    const minX = root.props.x - root.props.width / 2;
+    const maxX = minX + root.props.width;
+    const minY = root.props.y - root.props.height / 2;
+    const maxY = minY + root.props.height;
 
     if (
       event.x >= minX &&
@@ -27,17 +27,18 @@ export const handleEvent = curry((event, root) => {
       event.y >= minY &&
       event.y <= maxY
     ) {
-      if (root.onClick) {
-        root.onClick(event);
+      if (root.props.onClick) {
+        root.props.onClick(event);
       }
     } else {
       forEach(handleEvent(event))(root.children);
     }
   } else {
-    if (event.type === Events.KEYPRESS && root.onGlobalKeyPress) {
-      root.onGlobalKeyPress(event);
-    } else if (event.type === Events.KEYDOWN && root.onGlobalKeyDown) {
-      root.onGlobalKeyDown(event);
+    // TODO: _instance is not defined for _system nodes such as Rect, add test for that
+    if (event.type === Events.KEYPRESS && root._instance && root._instance.getGlobalKeyPressHandler()) {
+      root._instance.getGlobalKeyPressHandler()(event);
+    } else if (event.type === Events.KEYDOWN && root._instance && root._instance.getGlobalKeyDownHandler()) {
+      root._instance.getGlobalKeyDownHandler()(event);
     }
 
     forEach(handleEvent(event))(root.children);

@@ -34,7 +34,7 @@ const render = curry(({ gl, programs, getTexture, matrices }, root) => {
   if (root.type === "RECT") {
     nextMatrices = insert(
       1,
-      mat4.fromTranslation([], [root.x, root.y, root.z]),
+      mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
       nextMatrices
     );
     nextMatrices = computeMatrixStack(nextMatrices);
@@ -42,9 +42,10 @@ const render = curry(({ gl, programs, getTexture, matrices }, root) => {
   } else if (root.type === "TRANSFORM") {
     nextMatrices = handleTransformNode(nextMatrices, root);
   } else if (root.type === "SPRITE") {
+    // Should use same transform as rect ?
     nextMatrices = insert(
       1,
-      mat4.fromTranslation([], [root.x, root.y, root.z]),
+      mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
       nextMatrices
     );
     nextMatrices = computeMatrixStack(nextMatrices);
@@ -69,9 +70,11 @@ const renderSprite = ({ gl, program, getTexture, matrix }, root) => {
 
   const vertices = new Float32Array(
     rectToVertexArr({
-      width: 40,
-      height: 40,
-      z: 0,
+      props: {
+        width: 40,
+        height: 40,
+        z: 0,
+      },
     })
   );
 
@@ -90,7 +93,7 @@ const renderSprite = ({ gl, program, getTexture, matrix }, root) => {
   gl.uniformMatrix4fv(program.uMatrix, false, matrix);
 
   // Bind the texture to texture unit 0
-  gl.bindTexture(gl.TEXTURE_2D, getTexture(root.texture));
+  gl.bindTexture(gl.TEXTURE_2D, getTexture(root.props.texture));
   gl.uniform1i(program.uTexture, 0);
 
   gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -147,30 +150,30 @@ const renderRect = curry(({ gl, program, matrix }, rect) => {
 
 const rectToVertexArr = (rect) => [
   // Triangle 1
-  -rect.width / 2,
-  -rect.height / 2,
-  rect.z,
+  -rect.props.width / 2,
+  -rect.props.height / 2,
+  rect.props.z,
 
-  -rect.width / 2,
-  rect.height / 2,
-  rect.z,
+  -rect.props.width / 2,
+  rect.props.height / 2,
+  rect.props.z,
 
-  rect.width / 2,
-  rect.height / 2,
-  rect.z,
+  rect.props.width / 2,
+  rect.props.height / 2,
+  rect.props.z,
 
   // Triangle 2
-  rect.width / 2,
-  rect.height / 2,
-  rect.z,
+  rect.props.width / 2,
+  rect.props.height / 2,
+  rect.props.z,
 
-  rect.width / 2,
-  -rect.height / 2,
-  rect.z,
+  rect.props.width / 2,
+  -rect.props.height / 2,
+  rect.props.z,
 
-  -rect.width / 2,
-  -rect.height / 2,
-  rect.z,
+  -rect.props.width / 2,
+  -rect.props.height / 2,
+  rect.props.z,
 ];
 
 /**
