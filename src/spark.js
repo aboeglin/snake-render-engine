@@ -2,6 +2,7 @@ import { always, curry, eqProps, ifElse, keys, pipe, reduce } from "ramda";
 
 import { pushUpdate } from "./core";
 
+// TODO: split in two so that view nodes have a simplified version of it without state or lifecycles.
 export const Spark = (vnode) => {
   let _this = Object.create(null);
   let isMounted = false;
@@ -75,6 +76,8 @@ export const Spark = (vnode) => {
     state = nextState;
     oldProps = props;
     _vnode = vnode;
+
+    // Don't pass second parameter if __ENHANCER__ is false/undefined.
 
     return (_lastRender =
       typeof _vnode.type === "function"

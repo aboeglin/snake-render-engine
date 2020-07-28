@@ -1,4 +1,4 @@
-export { initWithRenderer } from "./core";
+export { initWithRenderer, reconcile, enhance } from "./core";
 export { createElement } from "./create-element";
 export { initRenderer } from "./renderer/renderer";
 export { default as withClock } from "./nodes/withClock";

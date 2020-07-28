@@ -1,5 +1,7 @@
 import { curry, pipe } from "ramda";
+
 import { Spark } from "./spark";
+import { createElement } from "./create-element";
 import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
 import constants from "./constants";
@@ -78,7 +80,7 @@ export const reconcile = curry((config, vnode) => {
 
   // Render will return the same reference if it shouldn't be updated. Which happens if state and props
   // have not changed since the previous render.
-  if (nextRender === vnode.children && !vnode.type._system) {
+  if (nextRender === vnode.children && vnode.type && !vnode.type._system) {
     return vnode;
   }
 
@@ -179,4 +181,21 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
   document.body.addEventListener("keydown", wireEvent);
 
   return start;
+};
+
+export const enhance = (fn) => (Node) => {
+  const enhancer = (props, internals) => {
+    const newProps = fn(internals, props);
+    const { children, ...otherProps } = newProps;
+
+    return createElement(Node, otherProps, children);
+  };
+
+  Object.defineProperty(enhancer, "__ENHANCER__", {
+    value: true,
+    writable: false,
+    configurable: false,
+  });
+
+  return enhancer;
 };

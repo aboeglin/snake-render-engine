@@ -1,4 +1,4 @@
-import { reconcile, initWithRenderer } from "./core";
+import { reconcile, initWithRenderer, enhance } from "./core";
 import { createClock } from "./clock";
 import { createElement } from "./create-element";
 import constants from "./constants";
@@ -652,12 +652,16 @@ describe("core", () => {
     const unmountedFn = jest.fn();
     const mountedFn = jest.fn();
 
-    const Wrapper = (_, { mounted, setState, state = 1 }) => {
+    const withCount = enhance(({ mounted, setState, state = 1 }, props) => {
       mounted(() => {
         setState(2);
       });
 
-      return state === 1
+      return { ...props, count: state };
+    });
+
+    const Wrapper = ({ count }) => {
+      return count === 1
         ? [
             <ChildThatShouldNotUnmount key={1} />,
             <Child key={2} />,
@@ -670,23 +674,28 @@ describe("core", () => {
           ];
     };
 
-    const ChildThatShouldNotUnmount = (_, { mounted, unmounted }) => {
+    const WrapperWithCount = withCount(Wrapper);
+
+    const withLifecycles = enhance(({ mounted, unmounted }, props) => {
       mounted(mountedFn);
       unmounted(unmountedFn);
-    };
+
+      return props;
+    });
 
     const Child = () => {};
+    const ChildThatShouldNotUnmount = withLifecycles(Child);
 
-    const actual = configuredReconcile(<Wrapper />);
+    const actual = configuredReconcile(<WrapperWithCount />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(unmountedFn).not.toHaveBeenCalled();
     expect(mountedFn).toHaveBeenCalledTimes(1);
 
-    expect(actual.children[0].type).toBe(Child);
-    expect(actual.children[1].type).toBe(ChildThatShouldNotUnmount);
-    expect(actual.children[2].type).toBe(Child);
+    expect(actual.children[0].children[0].type).toBe(Child);
+    expect(actual.children[0].children[1].type).toBe(ChildThatShouldNotUnmount);
+    expect(actual.children[0].children[2].type).toBe(Child);
   });
 
   test("children should be ignored when explicit ones are defined", () => {
@@ -699,9 +708,12 @@ describe("core", () => {
   });
 
   test("nodes should be able to declare themselves as dynamic, making them being re-rendered as often as possible", () => {
-    const DynamicNode = jest.fn((_, { dynamic }) => {
+    jest.useFakeTimers();
+    const makeDynamic = enhance(({ dynamic }, props) => {
       dynamic(true);
+      return props;
     });
+    const DynamicNode = jest.fn(makeDynamic(() => {}));
 
     configuredReconcile(<DynamicNode />); // First render
 
@@ -743,5 +755,29 @@ describe("core", () => {
     expect(Child).toHaveBeenCalledTimes(3);
     expect(mountedFn).toHaveBeenCalledTimes(1);
     expect(vtree.children[0].children[0].children).toBe(2);
+  });
+
+  test("enhance should provide node side-effect utilities to deal with lifecycles or state", () => {
+    jest.useFakeTimers();
+
+    const withState = enhance(({ mounted, setState, state = null }, props) => {
+      mounted(() => {
+        setState(1);
+      });
+
+      return { ...props, actual: state };
+    });
+
+    const Node = (props) => props;
+
+    const EnhancedNode = withState(Node);
+
+    const vtree = configuredReconcile(<EnhancedNode />); // First render
+
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL); // Second render
+
+    expect(vtree.children[0].props).toEqual({ actual: 1 });
+
+    jest.resetAllMocks();
   });
 });

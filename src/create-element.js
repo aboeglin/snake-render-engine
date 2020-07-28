@@ -6,6 +6,10 @@ export const createElement = (type, props = {}, children = []) => {
 
   const { key, ...realProps } = props;
 
+  // if (type.prototype.constructor.length > 1 && !type.__INCEPT__) {
+  //   throw "Illegal access: modes can only have a single props parameter";
+  // }
+
   return VNode(type, realProps, children, key);
 };
 
