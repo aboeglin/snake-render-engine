@@ -1,5 +1,3 @@
-import { replaceRaf } from "raf-stub";
-
 import { reconcile, initWithRenderer } from "./core";
 import { createClock } from "./clock";
 import { createElement } from "./create-element";
@@ -10,12 +8,19 @@ import constants from "./constants";
 const configuredReconcile = reconcile({});
 
 describe("core", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
   test("It should export a traverse function", () => {
     expect(typeof reconcile).toBe("function");
   });
 
   test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
-    jest.useFakeTimers();
     const Scene = () => [<Rect x={2} y={3} />, <Rect x={5} y={7} />];
     const Rect = (props) => ({
       type: "RECT",
@@ -62,7 +67,6 @@ describe("core", () => {
 
     const tree = configuredReconcile(<Scene />);
     expect(tree).toEqual(expected);
-    jest.resetAllMocks();
   });
 
   test("It should export an initWithRenderer function", () => {
@@ -70,7 +74,6 @@ describe("core", () => {
   });
 
   test("initWithRenderer should register click event handlers", () => {
-    jest.useFakeTimers();
     const container = {
       addEventListener: jest.fn(),
     };
@@ -83,11 +86,9 @@ describe("core", () => {
       "click",
       expect.any(Function)
     );
-    jest.resetAllMocks();
   });
 
   test("initWithRenderer should register keypress event handlers", () => {
-    jest.useFakeTimers();
     const container = {
       addEventListener: jest.fn(),
     };
@@ -102,11 +103,9 @@ describe("core", () => {
       "keypress",
       expect.any(Function)
     );
-    jest.resetAllMocks();
   });
 
   test("initWithRenderer should register keydown event handlers", () => {
-    jest.useFakeTimers();
     const container = {
       addEventListener: jest.fn(),
     };
@@ -121,11 +120,9 @@ describe("core", () => {
       "keydown",
       expect.any(Function)
     );
-    jest.resetAllMocks();
   });
 
   test("initWithRenderer should wire event handlers after start", () => {
-    jest.useFakeTimers();
     let click = null;
     const expected = jest.fn();
 
@@ -149,11 +146,9 @@ describe("core", () => {
     click({ offsetX: 10, offsetY: 90, type: "click" });
 
     expect(expected).toHaveBeenCalled();
-    jest.resetAllMocks();
   });
 
   test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
-    jest.useFakeTimers();
     const mountedFn = jest.fn();
 
     const ANode = (_, { mounted }) => {
@@ -175,11 +170,9 @@ describe("core", () => {
 
     configuredReconcile(<Scene />);
     expect(mountedFn).toHaveBeenCalledTimes(2);
-    jest.resetAllMocks();
   });
 
   test("mounted should be called independently for each element when it is first rendered", () => {
-    jest.useFakeTimers();
     let mountedFns = [];
 
     const ANode = (_, { mounted }) => {
@@ -194,11 +187,9 @@ describe("core", () => {
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
-    jest.resetAllMocks();
   });
 
   test("mounted should be called when a new child is rendered", () => {
-    jest.useFakeTimers();
     const mountedFns = [];
 
     const Parent = (_, { mounted, setState, state = false }) => {
@@ -229,11 +220,9 @@ describe("core", () => {
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
-    jest.resetAllMocks();
   });
 
   test("mounted should only be called once for nodes that are re-rendered due to state change", () => {
-    jest.useFakeTimers();
     const mountedFn = jest.fn();
 
     const Wrapper = () => <Child value={18} />;
@@ -256,11 +245,9 @@ describe("core", () => {
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(mountedFn).toHaveBeenCalledTimes(1);
-    jest.resetAllMocks();
   });
 
   test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
-    jest.useFakeTimers();
     const unmountedFn = jest.fn();
 
     const ANode = (_, { mounted, setState, state = { child: true } }) => {
@@ -281,11 +268,9 @@ describe("core", () => {
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(unmountedFn).toHaveBeenCalledTimes(1);
-    jest.resetAllMocks();
   });
 
   test("unmounted should not be called if the node is still being rendered", () => {
-    jest.useFakeTimers();
     const unmountedFn = jest.fn();
 
     const Wrapper = () => <ANode />;
@@ -302,11 +287,9 @@ describe("core", () => {
 
     expect(unmountedFn).not.toHaveBeenCalled();
     expect(ANode).toHaveBeenCalledTimes(2);
-    jest.resetAllMocks();
   });
 
   test("reconcile should resolve the children correctly", () => {
-    jest.useFakeTimers();
     const Parent = ({ stuff }) => (
       <Child>
         {stuff.map((x) => (
@@ -350,12 +333,9 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Scene />);
     expect(actual).toEqual(expected);
-    jest.resetAllMocks();
   });
 
   test("state should not be shared for different elements", () => {
-    jest.useFakeTimers();
-
     const Wrapper = () => [<StateOwner value={3} />, <StateOwner value={28} />];
 
     const StateOwner = ({ value }, { setState, state, mounted }) => {
@@ -370,12 +350,9 @@ describe("core", () => {
 
     expect(actual.children[0].children).toBe(3);
     expect(actual.children[1].children).toBe(28);
-    jest.resetAllMocks();
   });
 
   test("props should update", () => {
-    jest.useFakeTimers();
-
     const Wrapper = (_, { mounted, setState, state = 2 }) => {
       mounted(() => {
         setState(15);
@@ -392,11 +369,9 @@ describe("core", () => {
     expect(actual.children[0].children).toBe(2);
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(actual.children[0].children).toBe(15);
-    jest.resetAllMocks();
   });
 
   test("setState should trigger a tree update", () => {
-    jest.useFakeTimers();
     let actual = null;
 
     const Wrapper = () => <StateDude />;
@@ -436,11 +411,9 @@ describe("core", () => {
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(actual).toEqual(expected);
-    jest.resetAllMocks();
   });
 
   test("updates should be batched", () => {
-    jest.useFakeTimers();
     let actual = null;
 
     const delay = constants.BATCH_UPDATE_INTERVAL - 1;
@@ -485,11 +458,9 @@ describe("core", () => {
     };
 
     expect(actual).toEqual(expected);
-    jest.resetAllMocks();
   });
 
   test("updates should not recompute sparks that have already been updated the same batch should update the same spark twice", () => {
-    jest.useFakeTimers();
     const Wrapper = () => [<Child value={18} />, <Child value={27} />];
 
     const Child = ({ value }, { setState, mounted }) => {
@@ -514,11 +485,9 @@ describe("core", () => {
     expect(GrandChild).toHaveBeenCalledTimes(4);
     expect(actual.children[0].children[0].children).toBe(18);
     expect(actual.children[1].children[0].children).toBe(27);
-    jest.resetAllMocks();
   });
 
   test("update propagation should stop if state did not change", () => {
-    jest.useFakeTimers();
     const Wrapper = (_, { mounted, setState, state = 28 }) => {
       mounted(() => {
         setState(28);
@@ -535,12 +504,9 @@ describe("core", () => {
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
     expect(actual.children[0].children).toBe(28);
-    jest.resetAllMocks();
   });
 
   test("update propagation should stop if props did not change", () => {
-    jest.useFakeTimers();
-
     const Wrapper = (_, { mounted, setState }) => {
       mounted(() => {
         setState(29);
@@ -557,12 +523,9 @@ describe("core", () => {
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
     expect(actual.children[0].children).toBe(28);
-    jest.resetAllMocks();
   });
 
   test("update propagation should not stop if props did change", () => {
-    jest.useFakeTimers();
-
     const Wrapper = (_, { mounted, setState, state = 28 }) => {
       mounted(() => {
         setState(29);
@@ -579,12 +542,9 @@ describe("core", () => {
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
     expect(actual.children[0].children).toBe(29);
-    jest.resetAllMocks();
   });
 
   test("update propagation should not stop if prop count did change", () => {
-    jest.useFakeTimers();
-
     const Wrapper = (_, { mounted, setState, state = 28 }) => {
       mounted(() => {
         setState(29);
@@ -608,13 +568,11 @@ describe("core", () => {
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
     expect(actual.children[0].children).toEqual([
-      { type: "UNKNOWN",value: 28, valueFromState: 29, children: [] },
+      { type: "UNKNOWN", value: 28, valueFromState: 29, children: [] },
     ]);
-    jest.resetAllMocks();
   });
 
   test("reconcile should mount children added to a node after a setState update", () => {
-    jest.useFakeTimers();
     const mountedFn = jest.fn();
 
     const Wrapper = (_, { mounted, setState, state = 1 }) => {
@@ -635,12 +593,9 @@ describe("core", () => {
 
     expect(mountedFn).toHaveBeenCalledTimes(2);
     expect(actual.children.length).toBe(2);
-
-    jest.resetAllMocks();
   });
 
   test("reconcile should unmount children removed from a node after a setState update", () => {
-    jest.useFakeTimers();
     const unmountedFn = jest.fn();
 
     const Wrapper = (_, { mounted, setState, state = 2 }) => {
@@ -663,14 +618,11 @@ describe("core", () => {
 
     expect(unmountedFn).toHaveBeenCalledTimes(1);
     expect(actual.children.length).toBe(1);
-
-    jest.resetAllMocks();
   });
 
   // eg: [ NodeA, NodeA, NodeA ] -> [ NodeA, NodeB, Node A ]
   // The second child should be : unmounted ( NodeA ), remounted ( NodeB )
   test("reconcile should unmount children that have changed type after a setState update", () => {
-    jest.useFakeTimers();
     const unmountedFn = jest.fn();
 
     const Wrapper = (_, { mounted, setState, state = 2 }) => {
@@ -694,12 +646,9 @@ describe("core", () => {
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(unmountedFn).toHaveBeenCalledTimes(1);
-
-    jest.resetAllMocks();
   });
 
   test("reconcile should resolve children with a key in order to figure out re-ordering without unmounting or mounting nodes", () => {
-    jest.useFakeTimers();
     const unmountedFn = jest.fn();
     const mountedFn = jest.fn();
 
@@ -738,23 +687,18 @@ describe("core", () => {
     expect(actual.children[0].type).toBe(Child);
     expect(actual.children[1].type).toBe(ChildThatShouldNotUnmount);
     expect(actual.children[2].type).toBe(Child);
-
-    jest.resetAllMocks();
   });
 
   test("children should be ignored when explicit ones are defined", () => {
-    jest.useFakeTimers();
     const Wrapper = () => <Child>a</Child>;
     const Child = ({ children }) => children;
 
     const actual = configuredReconcile(<Wrapper>b</Wrapper>);
 
     expect(actual.children[0].children[0]).toBe("a");
-    jest.resetAllMocks();
   });
 
   test("nodes should be able to declare themselves as dynamic, making them being re-rendered as often as possible", () => {
-    jest.useFakeTimers();
     const DynamicNode = jest.fn((_, { dynamic }) => {
       dynamic(true);
     });
@@ -765,7 +709,5 @@ describe("core", () => {
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL); // Third render
 
     expect(DynamicNode).toHaveBeenCalledTimes(3);
-
-    jest.resetAllMocks();
   });
 });

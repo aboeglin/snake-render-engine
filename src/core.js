@@ -102,7 +102,6 @@ export const reconcile = curry((config, vnode) => {
     vnode.children = [vnode.children];
   }
 
-  // Reassign instances of previous children to new children
   if (Array.isArray(vnode.children)) {
     vnode.children.forEach((newChild, i) => {
       const oldChild = findVNodeByKey(
@@ -111,20 +110,14 @@ export const reconcile = curry((config, vnode) => {
         newChild.key
       );
 
-      // Need to reason about these two ifs and probably comment it / refactor it.
-      if (!newChild.children) {
-        newChild.children = [];
-      }
-
-      if (
-        oldChild &&
-        newChild.children.length === 0 &&
-        (typeof newChild.children !== "object" ||
-          Array.isArray(newChild.children))
-      ) {
+      // Assign children oldChildren to children of new children
+      // so that the next recursion can access these to retrive the
+      // instance.
+      if (oldChild && oldChild.children) {
         newChild.children = oldChild.children;
       }
 
+      // Reassign instances of previous children to new children
       if (oldChild && oldChild._instance && oldChild.type === newChild.type) {
         Object.defineProperty(newChild, "_instance", {
           value: oldChild._instance,
@@ -132,8 +125,6 @@ export const reconcile = curry((config, vnode) => {
           writable: false,
         });
       }
-
-      vnode.children[i] = newChild;
     });
   }
 

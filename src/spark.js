@@ -20,7 +20,7 @@ export const Spark = (vnode) => {
   const onGlobalKeyPress = (fn) => {
     globalKeyPressHandler = fn;
   };
-  
+
   const onGlobalKeyDown = (fn) => {
     globalKeyDownHandler = fn;
   };
@@ -108,8 +108,8 @@ export const Spark = (vnode) => {
     isDirty,
     makeDirty,
     isDynamic,
-    getGlobalKeyPressHandler: () => globalKeyPressHandler, 
-    getGlobalKeyDownHandler: () => globalKeyDownHandler, 
+    getGlobalKeyPressHandler: () => globalKeyPressHandler,
+    getGlobalKeyDownHandler: () => globalKeyDownHandler,
   });
 };
 
