@@ -78,10 +78,9 @@ export const reconcile = curry((config, vnode) => {
 
   // Render will return the same reference if it shouldn't be updated. Which happens if state and props
   // have not changed since the previous render.
-  // if (nextRender === vnode.children && !vnode.type._system) {
-  //   console.log("EARLY");
-  //   return vnode;
-  // }
+  if (nextRender === vnode.children && !vnode.type._system) {
+    return vnode;
+  }
 
   vnode.children = nextRender;
 

@@ -60,8 +60,6 @@ describe("Rect", () => {
       </Rect>
     );
 
-    const util = require("util");
-    console.log(util.inspect(actual, { depth: null }));
     expect(actual).toEqual(expected);
   });
 

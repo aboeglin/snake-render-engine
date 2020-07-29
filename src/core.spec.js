@@ -7,21 +7,7 @@ import constants from "./constants";
 
 /** @jsx createElement */
 
-replaceRaf([global]);
-const getTime = () => 499;
-const clock = createClock(getTime);
-const lifecycles = {
-  mounted: () => {},
-  unmounted: () => {},
-  __getResolvers: () => ({
-    mountedResolvers: [],
-    unmountedResolvers: [],
-  }),
-  __reset: () => {},
-};
-const config = { clock, lifecycles };
-
-const configuredReconcile = reconcile(config);
+const configuredReconcile = reconcile({});
 
 describe("core", () => {
   test("It should export a traverse function", () => {
@@ -29,6 +15,7 @@ describe("core", () => {
   });
 
   test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
+    jest.useFakeTimers();
     const Scene = () => [<Rect x={2} y={3} />, <Rect x={5} y={7} />];
     const Rect = (props) => ({
       type: "RECT",
@@ -75,6 +62,7 @@ describe("core", () => {
 
     const tree = configuredReconcile(<Scene />);
     expect(tree).toEqual(expected);
+    jest.resetAllMocks();
   });
 
   test("It should export an initWithRenderer function", () => {
@@ -82,6 +70,7 @@ describe("core", () => {
   });
 
   test("initWithRenderer should register click event handlers", () => {
+    jest.useFakeTimers();
     const container = {
       addEventListener: jest.fn(),
     };
@@ -94,9 +83,11 @@ describe("core", () => {
       "click",
       expect.any(Function)
     );
+    jest.resetAllMocks();
   });
 
   test("initWithRenderer should register keypress event handlers", () => {
+    jest.useFakeTimers();
     const container = {
       addEventListener: jest.fn(),
     };
@@ -111,9 +102,11 @@ describe("core", () => {
       "keypress",
       expect.any(Function)
     );
+    jest.resetAllMocks();
   });
 
   test("initWithRenderer should register keydown event handlers", () => {
+    jest.useFakeTimers();
     const container = {
       addEventListener: jest.fn(),
     };
@@ -128,9 +121,11 @@ describe("core", () => {
       "keydown",
       expect.any(Function)
     );
+    jest.resetAllMocks();
   });
 
   test("initWithRenderer should wire event handlers after start", () => {
+    jest.useFakeTimers();
     let click = null;
     const expected = jest.fn();
 
@@ -154,9 +149,11 @@ describe("core", () => {
     click({ offsetX: 10, offsetY: 90, type: "click" });
 
     expect(expected).toHaveBeenCalled();
+    jest.resetAllMocks();
   });
 
   test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
+    jest.useFakeTimers();
     const mountedFn = jest.fn();
 
     const ANode = (_, { mounted }) => {
@@ -178,9 +175,11 @@ describe("core", () => {
 
     configuredReconcile(<Scene />);
     expect(mountedFn).toHaveBeenCalledTimes(2);
+    jest.resetAllMocks();
   });
 
   test("mounted should be called independently for each element when it is first rendered", () => {
+    jest.useFakeTimers();
     let mountedFns = [];
 
     const ANode = (_, { mounted }) => {
@@ -195,6 +194,7 @@ describe("core", () => {
 
     expect(mountedFns[0]).toHaveBeenCalledTimes(1);
     expect(mountedFns[1]).toHaveBeenCalledTimes(1);
+    jest.resetAllMocks();
   });
 
   test("mounted should be called when a new child is rendered", () => {
@@ -306,6 +306,7 @@ describe("core", () => {
   });
 
   test("reconcile should resolve the children correctly", () => {
+    jest.useFakeTimers();
     const Parent = ({ stuff }) => (
       <Child>
         {stuff.map((x) => (
@@ -349,6 +350,7 @@ describe("core", () => {
 
     const actual = configuredReconcile(<Scene />);
     expect(actual).toEqual(expected);
+    jest.resetAllMocks();
   });
 
   test("state should not be shared for different elements", () => {
@@ -390,6 +392,7 @@ describe("core", () => {
     expect(actual.children[0].children).toBe(2);
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(actual.children[0].children).toBe(15);
+    jest.resetAllMocks();
   });
 
   test("setState should trigger a tree update", () => {
@@ -597,6 +600,7 @@ describe("core", () => {
     const Child = jest.fn(({ value, valueFromState }) => ({
       value,
       valueFromState,
+      type: "UNKNOWN",
     }));
 
     const actual = configuredReconcile(<Wrapper />);
@@ -604,7 +608,7 @@ describe("core", () => {
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
     expect(actual.children[0].children).toEqual([
-      { value: 28, valueFromState: 29, children: [] },
+      { type: "UNKNOWN",value: 28, valueFromState: 29, children: [] },
     ]);
     jest.resetAllMocks();
   });
@@ -739,12 +743,14 @@ describe("core", () => {
   });
 
   test("children should be ignored when explicit ones are defined", () => {
+    jest.useFakeTimers();
     const Wrapper = () => <Child>a</Child>;
     const Child = ({ children }) => children;
 
     const actual = configuredReconcile(<Wrapper>b</Wrapper>);
 
     expect(actual.children[0].children[0]).toBe("a");
+    jest.resetAllMocks();
   });
 
   test("nodes should be able to declare themselves as dynamic, making them being re-rendered as often as possible", () => {

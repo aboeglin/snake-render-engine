@@ -54,14 +54,27 @@ const Snake = (
 ) => {
   const currentTicks = pipe(
     (t) => t - getT0(t),
-    (t) => Math.floor((t * Math.sqrt(state.tail.length)) / 1500)
+    (t) => Math.floor((t * Math.sqrt(state.tail.length)) / 1000)
   )(time);
 
   if (currentTicks > state.ticks) {
     // perform move:
     const firstPiece = state.tail[0];
     const middlePieces = dropLast(1, state.tail);
-    const newTail = [{ x: 320, y: firstPiece.y + 20 }, ...middlePieces];
+    let newX = firstPiece.x;
+    let newY = firstPiece.y;
+    if (direction === Directions.LEFT) {
+      newX = newX - 20;
+    } else if (direction === Directions.RIGHT) {
+      newX = newX + 20;
+    }
+    if (direction === Directions.UP) {
+      newY = newY + 20;
+    } else if (direction === Directions.DOWN) {
+      newY = newY - 20;
+    }
+
+    const newTail = [{ x: newX, y: newY }, ...middlePieces];
     setState({ tail: newTail, ticks: currentTicks });
   }
 
