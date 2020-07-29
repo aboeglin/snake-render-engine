@@ -112,10 +112,16 @@ export const reconcile = curry((config, vnode) => {
         newChild.key
       );
 
+      // Need to reason about these two ifs and probably comment it / refactor it.
+      if (!newChild.children) {
+        newChild.children = [];
+      }
+
       if (
         oldChild &&
         newChild.children.length === 0 &&
-        (typeof vnode.children !== "object")
+        (typeof newChild.children !== "object" ||
+          Array.isArray(newChild.children))
       ) {
         newChild.children = oldChild.children;
       }
