@@ -10,6 +10,7 @@ const Rect = (props) => ({
   },
   children: props.children,
 });
+// const Rect = (props) => props.children;
 
 Object.defineProperty(Rect, "_system", {
   value: true,

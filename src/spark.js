@@ -3,7 +3,7 @@ import { always, curry, eqProps, ifElse, keys, pipe, reduce } from "ramda";
 import { pushUpdate } from "./core";
 
 export const Spark = (vnode) => {
-  let _this = {};
+  let _this = Object.create(null);
   let isMounted = false;
   let unmountedFn = null;
   let state = undefined; // So that we can have default state in nodes.

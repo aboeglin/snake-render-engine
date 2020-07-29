@@ -84,7 +84,7 @@ describe("withClock", () => {
           children: [
             {
               type: Snake,
-              props: { time: 6 },
+              props: { time: 6, children: [] },
               children: [
                 { type: "ANY", x: 2, y: 3, z: undefined, children: [] },
               ],

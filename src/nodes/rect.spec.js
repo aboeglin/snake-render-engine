@@ -59,6 +59,9 @@ describe("Rect", () => {
         <Rect x={0} y={0} z={0} width={15} height={15} />
       </Rect>
     );
+
+    const util = require("util");
+    console.log(util.inspect(actual, { depth: null }));
     expect(actual).toEqual(expected);
   });
 

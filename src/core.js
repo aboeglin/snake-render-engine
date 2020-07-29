@@ -33,11 +33,12 @@ const processQueue = throttle(constants.BATCH_UPDATE_INTERVAL, () => {
   const dynamicSparks = [];
   let sparkToUpdate;
   while ((sparkToUpdate = updateQueue.shift())) {
-    if (sparkToUpdate.isDynamic()) {
-      dynamicSparks.push(sparkToUpdate);
-    }
     if (sparkToUpdate.isDirty()) {
       reconcile({}, sparkToUpdate.getVNode());
+    }
+
+    if (sparkToUpdate.isDynamic()) {
+      dynamicSparks.push(sparkToUpdate);
     }
   }
   // When everything is processed and the queue is empty, we already push the dynamic sparks for the next iteration
@@ -49,10 +50,11 @@ const sparkFromNode = (vnode) => {
   if (vnode && !vnode._instance) {
     Object.defineProperty(vnode, "_instance", {
       value: Spark(vnode),
-      configurable: true,
+      configurable: false,
       writable: false,
     });
   }
+
   return vnode._instance;
 };
 
@@ -76,15 +78,16 @@ export const reconcile = curry((config, vnode) => {
 
   // Render will return the same reference if it shouldn't be updated. Which happens if state and props
   // have not changed since the previous render.
-  if (nextRender === vnode.children) {
-    return vnode;
-  }
+  // if (nextRender === vnode.children && !vnode.type._system) {
+  //   console.log("EARLY");
+  //   return vnode;
+  // }
 
   vnode.children = nextRender;
 
   // If it's a core node, we assign what is rendered to the node directly.
   if (vnode.type && vnode.type._system) {
-    vnode = vnode.children;
+    vnode = reconcile({}, vnode.children);
   }
 
   // We wrap children that are single objects in arrays for consistency
@@ -109,13 +112,23 @@ export const reconcile = curry((config, vnode) => {
         newChild.key
       );
 
-      if (oldChild && oldChild.type === newChild.type) {
+      if (
+        oldChild &&
+        newChild.children.length === 0 &&
+        (typeof vnode.children !== "object")
+      ) {
+        newChild.children = oldChild.children;
+      }
+
+      if (oldChild && oldChild._instance && oldChild.type === newChild.type) {
         Object.defineProperty(newChild, "_instance", {
           value: oldChild._instance,
-          configurable: true,
+          configurable: false,
           writable: false,
         });
       }
+
+      vnode.children[i] = newChild;
     });
   }
 

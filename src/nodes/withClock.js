@@ -12,13 +12,7 @@ const withClock = curry((getTime, Node) => {
   const Clock = (props, { dynamic }) => {
     dynamic(true);
 
-    const { children, ...rest } = props;
-
-    return createElement(
-      Node,
-      { ...rest, time: clock.getCurrentTime() },
-      children
-    );
+    return createElement(Node, { ...props, time: clock.getCurrentTime() });
   };
 
   return Clock;
