@@ -710,4 +710,35 @@ describe("core", () => {
 
     expect(DynamicNode).toHaveBeenCalledTimes(3);
   });
+
+  test("nodes that are nested should not have their state reset when some parent triggers an update", () => {
+    const handleChanged = jest.fn((setState) => (v) => setState(v));
+
+    const GrandFather = (_, { setState, state = null }) => {
+      return <Father value={state} onChanged={(v) => setState(v)} />;
+    };
+
+    const Father = (props) => {
+      return <Child value={props.value} onChanged={props.onChanged} />;
+    };
+
+    const Child = jest.fn((props, { mounted, setState, state = 1 }) => {
+      mounted(() => {
+        setState(2);
+      });
+
+      if (state === 2) {
+        props.onChanged(state);
+      }
+
+      return state;
+    });
+
+    const vtree = configuredReconcile(<GrandFather />);
+
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
+
+    expect(Child).toHaveBeenCalledTimes(3);
+    expect(vtree.children[0].children[0].children).toBe(2);
+  });
 });
