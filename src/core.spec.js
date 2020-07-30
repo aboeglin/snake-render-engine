@@ -712,7 +712,7 @@ describe("core", () => {
   });
 
   test("nodes that are nested should not have their state reset when some parent triggers an update", () => {
-    const handleChanged = jest.fn((setState) => (v) => setState(v));
+    let mountedFn = null;
 
     const GrandFather = (_, { setState, state = null }) => {
       return <Father value={state} onChanged={(v) => setState(v)} />;
@@ -723,9 +723,11 @@ describe("core", () => {
     };
 
     const Child = jest.fn((props, { mounted, setState, state = 1 }) => {
-      mounted(() => {
-        setState(2);
-      });
+      if (!mountedFn) {
+        mountedFn = jest.fn(() => setState(2));
+      }
+
+      mounted(mountedFn);
 
       if (state === 2) {
         props.onChanged(state);
@@ -739,6 +741,7 @@ describe("core", () => {
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(Child).toHaveBeenCalledTimes(3);
+    expect(mountedFn).toHaveBeenCalledTimes(1);
     expect(vtree.children[0].children[0].children).toBe(2);
   });
 });
