@@ -183,12 +183,14 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
   return start;
 };
 
-export const enhance = (fn) => (Node) => {
+export const enhance = curry((fn, key, Node) => {
   const enhancer = (props, internals) => {
-    const newProps = fn(internals, props);
-    const { children, ...otherProps } = newProps;
+    const { children, ...rest } = props;
+    const computed = fn(internals, props);
 
-    return createElement(Node, otherProps, children);
+    return key === null
+      ? createElement(Node, rest, children)
+      : createElement(Node, { ...rest, [key]: computed }, children);
   };
 
   Object.defineProperty(enhancer, "__ENHANCER__", {
@@ -198,4 +200,4 @@ export const enhance = (fn) => (Node) => {
   });
 
   return enhancer;
-};
+});

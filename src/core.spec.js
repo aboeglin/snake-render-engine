@@ -20,7 +20,7 @@ describe("core", () => {
     expect(typeof reconcile).toBe("function");
   });
 
-  test("traverse should be able to handle Nodes that return an array of NodeElements", () => {
+  test("reconcile should be able to handle Nodes that return an array of NodeElements", () => {
     const Scene = () => [<Rect x={2} y={3} />, <Rect x={5} y={7} />];
     const Rect = (props) => ({
       type: "RECT",
@@ -148,12 +148,12 @@ describe("core", () => {
     expect(expected).toHaveBeenCalled();
   });
 
-  test("nodes should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
+  test("enhance should be given a mounted function that takes a function that is executed when the node is first rendered", () => {
     const mountedFn = jest.fn();
 
-    const ANode = (_, { mounted }) => {
-      mounted(mountedFn);
-    };
+    const withMounted = enhance(({ mounted }) => mounted(mountedFn));
+
+    const ANode = withMounted(null, () => {});
 
     configuredReconcile(<ANode />);
     expect(mountedFn).toHaveBeenCalledTimes(1);
@@ -162,9 +162,9 @@ describe("core", () => {
   test("nodes should be given a mounted function that is called once for each constructed element", () => {
     const mountedFn = jest.fn();
 
-    const ANode = (_, { mounted }) => {
-      mounted(mountedFn);
-    };
+    const withMounted = enhance(({ mounted }) => mounted(mountedFn));
+
+    const ANode = withMounted(null, () => {});
 
     const Scene = () => [<ANode />, <ANode />];
 
@@ -175,11 +175,13 @@ describe("core", () => {
   test("mounted should be called independently for each element when it is first rendered", () => {
     let mountedFns = [];
 
-    const ANode = (_, { mounted }) => {
+    const withMounted = enhance(({ mounted }) => {
       const mountedFn = jest.fn();
       mountedFns.push(mountedFn);
       mounted(mountedFn);
-    };
+    });
+
+    const ANode = withMounted(null, () => {});
 
     const TwoNodes = () => [<ANode />, <ANode />];
 
@@ -192,29 +194,27 @@ describe("core", () => {
   test("mounted should be called when a new child is rendered", () => {
     const mountedFns = [];
 
-    const Parent = (_, { mounted, setState, state = false }) => {
+    const withMounted = enhance(({ mounted }) => {
+      const mountedFn = jest.fn();
+      mountedFns.push(mountedFn);
+      mounted(mountedFn);
+    });
+
+    const withIsMounted = enhance(({ mounted, setState, state = false }) => {
       mounted(() => {
         setState(true);
       });
 
-      return !state ? <Child1 /> : <Child2 />;
-    };
+      return state;
+    });
 
-    const Child1 = (_, { mounted }) => {
-      const cb = jest.fn();
-      mountedFns.push(cb);
+    const Parent = ({ isMounted }) => (!isMounted ? <Child1 /> : <Child2 />);
+    const ParentWithIsMounted = withIsMounted("isMounted", Parent);
 
-      mounted(cb);
-    };
+    const Child1 = withMounted(null, () => {});
+    const Child2 = withMounted(null, () => {});
 
-    const Child2 = (_, { mounted }) => {
-      const cb = jest.fn();
-      mountedFns.push(cb);
-
-      mounted(cb);
-    };
-
-    configuredReconcile(<Parent />);
+    configuredReconcile(<ParentWithIsMounted />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
@@ -225,44 +225,50 @@ describe("core", () => {
   test("mounted should only be called once for nodes that are re-rendered due to state change", () => {
     const mountedFn = jest.fn();
 
-    const Wrapper = () => <Child value={18} />;
+    const Wrapper = () => <ChildWithValue value={18} />;
 
-    const Child = ({ value }, { setState, mounted }) => {
-      mounted(() => {
-        setState(value);
-      });
-
-      return <GrandChild value={value} />;
-    };
-
-    const GrandChild = (_, { mounted, state }) => {
-      mounted(mountedFn);
-
+    const withValue = enhance(({ setState, mounted, state = 1 }, { value }) => {
+      mounted(() => setState(value));
       return state;
-    };
+    });
+
+    const Child = ({ value }) => <GrandChild value={value} />;
+    const ChildWithValue = jest.fn(withValue("value", Child));
+
+    const withMountedChecker = enhance(({ mounted }) => mounted(mountedFn));
+    const GrandChild = jest.fn(withMountedChecker(null, () => {}));
 
     configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(mountedFn).toHaveBeenCalledTimes(1);
+    expect(ChildWithValue).toHaveBeenCalledTimes(2);
+    expect(GrandChild).toHaveBeenCalledTimes(2);
   });
 
   test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
     const unmountedFn = jest.fn();
 
-    const ANode = (_, { mounted, setState, state = { child: true } }) => {
+    const ANode = ({ hasChild }) => (hasChild ? <WillUnmount /> : null);
+    const withHasChild = enhance(({ mounted, setState, state = true }) => {
       mounted(() => {
-        setState({ child: false });
+        setState(false);
       });
 
-      return state.child ? <WillUnmount /> : null;
-    };
+      return state;
+    });
 
-    const Wrapper = () => <ANode />;
+    const ANodeWithHasChild = withHasChild("hasChild", ANode);
 
-    const WillUnmount = (_, { unmounted }) => {
-      unmounted(unmountedFn);
-    };
+    const Wrapper = () => <ANodeWithHasChild />;
+
+    const WillUnmount = enhance(
+      ({ unmounted }) => {
+        unmounted(unmountedFn);
+      },
+      null,
+      () => {}
+    );
 
     configuredReconcile(<Wrapper />);
 
@@ -275,15 +281,17 @@ describe("core", () => {
 
     const Wrapper = () => <ANode />;
 
-    const ANode = jest.fn((_, { unmounted, setState, mounted }) => {
+    const withUnmountedChecker = enhance(({ unmounted, setState, mounted }) => {
       mounted(() => {
         setState("Trigger update");
       });
       unmounted(unmountedFn);
-    });
+    })
+
+    const ANode = jest.fn(withUnmountedChecker(null, () => {}));
 
     configuredReconcile(<Wrapper show={true} />);
-    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL + 1);
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(unmountedFn).not.toHaveBeenCalled();
     expect(ANode).toHaveBeenCalledTimes(2);
@@ -335,6 +343,7 @@ describe("core", () => {
     expect(actual).toEqual(expected);
   });
 
+  // TODO: refactor with enhance
   test("state should not be shared for different elements", () => {
     const Wrapper = () => [<StateOwner value={3} />, <StateOwner value={28} />];
 
@@ -371,6 +380,7 @@ describe("core", () => {
     expect(actual.children[0].children).toBe(15);
   });
 
+  // TODO: refactor with enhance
   test("setState should trigger a tree update", () => {
     let actual = null;
 
@@ -413,6 +423,7 @@ describe("core", () => {
     expect(actual).toEqual(expected);
   });
 
+  // TODO: refactor with enhance
   test("updates should be batched", () => {
     let actual = null;
 
@@ -460,6 +471,7 @@ describe("core", () => {
     expect(actual).toEqual(expected);
   });
 
+  // TODO: refactor with enhance
   test("updates should not recompute sparks that have already been updated the same batch should update the same spark twice", () => {
     const Wrapper = () => [<Child value={18} />, <Child value={27} />];
 
@@ -487,6 +499,7 @@ describe("core", () => {
     expect(actual.children[1].children[0].children).toBe(27);
   });
 
+  // TODO: refactor with enhance
   test("update propagation should stop if state did not change", () => {
     const Wrapper = (_, { mounted, setState, state = 28 }) => {
       mounted(() => {
@@ -506,6 +519,7 @@ describe("core", () => {
     expect(actual.children[0].children).toBe(28);
   });
 
+  // TODO: refactor with enhance
   test("update propagation should stop if props did not change", () => {
     const Wrapper = (_, { mounted, setState }) => {
       mounted(() => {
@@ -525,6 +539,7 @@ describe("core", () => {
     expect(actual.children[0].children).toBe(28);
   });
 
+  // TODO: refactor with enhance
   test("update propagation should not stop if props did change", () => {
     const Wrapper = (_, { mounted, setState, state = 28 }) => {
       mounted(() => {
@@ -544,6 +559,7 @@ describe("core", () => {
     expect(actual.children[0].children).toBe(29);
   });
 
+  // TODO: refactor with enhance
   test("update propagation should not stop if prop count did change", () => {
     const Wrapper = (_, { mounted, setState, state = 28 }) => {
       mounted(() => {
@@ -572,6 +588,7 @@ describe("core", () => {
     ]);
   });
 
+  // TODO: refactor with enhance
   test("reconcile should mount children added to a node after a setState update", () => {
     const mountedFn = jest.fn();
 
@@ -595,6 +612,7 @@ describe("core", () => {
     expect(actual.children.length).toBe(2);
   });
 
+  // TODO: refactor with enhance
   test("reconcile should unmount children removed from a node after a setState update", () => {
     const unmountedFn = jest.fn();
 
@@ -620,6 +638,7 @@ describe("core", () => {
     expect(actual.children.length).toBe(1);
   });
 
+  // TODO: refactor with enhance
   // eg: [ NodeA, NodeA, NodeA ] -> [ NodeA, NodeB, Node A ]
   // The second child should be : unmounted ( NodeA ), remounted ( NodeB )
   test("reconcile should unmount children that have changed type after a setState update", () => {
@@ -657,7 +676,7 @@ describe("core", () => {
         setState(2);
       });
 
-      return { ...props, count: state };
+      return state;
     });
 
     const Wrapper = ({ count }) => {
@@ -674,17 +693,15 @@ describe("core", () => {
           ];
     };
 
-    const WrapperWithCount = withCount(Wrapper);
+    const WrapperWithCount = withCount("count", Wrapper);
 
-    const withLifecycles = enhance(({ mounted, unmounted }, props) => {
+    const withLifecycles = enhance(({ mounted, unmounted }) => {
       mounted(mountedFn);
       unmounted(unmountedFn);
-
-      return props;
     });
 
     const Child = () => {};
-    const ChildThatShouldNotUnmount = withLifecycles(Child);
+    const ChildThatShouldNotUnmount = withLifecycles(null, Child);
 
     const actual = configuredReconcile(<WrapperWithCount />);
 
@@ -707,13 +724,19 @@ describe("core", () => {
     expect(actual.children[0].children[0]).toBe("a");
   });
 
+  test("children should render children props", () => {
+    const Wrapper = (props) => <Child>{props.children}</Child>;
+    const Child = ({ children }) => children;
+
+    const actual = configuredReconcile(<Wrapper>b</Wrapper>);
+
+    expect(actual.children[0].children[0]).toBe("b");
+  });
+
   test("nodes should be able to declare themselves as dynamic, making them being re-rendered as often as possible", () => {
     jest.useFakeTimers();
-    const makeDynamic = enhance(({ dynamic }, props) => {
-      dynamic(true);
-      return props;
-    });
-    const DynamicNode = jest.fn(makeDynamic(() => {}));
+    const makeDynamic = enhance(({ dynamic }) => dynamic(true));
+    const DynamicNode = jest.fn(makeDynamic(null, () => {}));
 
     configuredReconcile(<DynamicNode />); // First render
 
@@ -723,6 +746,7 @@ describe("core", () => {
     expect(DynamicNode).toHaveBeenCalledTimes(3);
   });
 
+  // TODO: refactor with enhance
   test("nodes that are nested should not have their state reset when some parent triggers an update", () => {
     let mountedFn = null;
 
@@ -758,26 +782,21 @@ describe("core", () => {
   });
 
   test("enhance should provide node side-effect utilities to deal with lifecycles or state", () => {
-    jest.useFakeTimers();
-
-    const withState = enhance(({ mounted, setState, state = null }, props) => {
+    const withState = enhance(({ mounted, setState, state = null }) => {
       mounted(() => {
         setState(1);
       });
 
-      return { ...props, actual: state };
+      return state;
     });
 
     const Node = (props) => props;
-
-    const EnhancedNode = withState(Node);
+    const EnhancedNode = withState("actual", Node);
 
     const vtree = configuredReconcile(<EnhancedNode />); // First render
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL); // Second render
 
     expect(vtree.children[0].props).toEqual({ actual: 1 });
-
-    jest.resetAllMocks();
   });
 });
