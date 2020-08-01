@@ -286,7 +286,7 @@ describe("core", () => {
         setState("Trigger update");
       });
       unmounted(unmountedFn);
-    })
+    });
 
     const ANode = jest.fn(withUnmountedChecker(null, () => {}));
 
@@ -638,29 +638,30 @@ describe("core", () => {
     expect(actual.children.length).toBe(1);
   });
 
-  // TODO: refactor with enhance
   // eg: [ NodeA, NodeA, NodeA ] -> [ NodeA, NodeB, Node A ]
   // The second child should be : unmounted ( NodeA ), remounted ( NodeB )
   test("reconcile should unmount children that have changed type after a setState update", () => {
     const unmountedFn = jest.fn();
 
-    const Wrapper = (_, { mounted, setState, state = 2 }) => {
-      mounted(() => {
-        setState(1);
-      });
+    const withUnmountedChecker = enhance(({ unmounted }) =>
+      unmounted(unmountedFn)
+    );
+    const withBoolean = enhance(({ mounted, setState, state = true }) => {
+      mounted(() => setState(false));
+      return state;
+    });
 
-      return state === 1
-        ? [<Child />, <Child />, <Child />]
-        : [<Child />, <ChildThatUnmounts />, <Child />];
-    };
-
-    const ChildThatUnmounts = (_, { unmounted }) => {
-      unmounted(unmountedFn);
-    };
+    const Wrapper = ({ showChildThatUnmounts }) =>
+      showChildThatUnmounts
+        ? [<Child />, <ChildThatUnmounts />, <Child />]
+        : [<Child />, <Child />, <Child />];
 
     const Child = () => {};
+    const ChildThatUnmounts = withUnmountedChecker(null, Child);
 
-    configuredReconcile(<Wrapper />);
+    const WrapperWithBoolean = withBoolean("showChildThatUnmounts", Wrapper);
+
+    configuredReconcile(<WrapperWithBoolean />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
