@@ -588,49 +588,46 @@ describe("core", () => {
     ]);
   });
 
-  // TODO: refactor with enhance
   test("reconcile should mount children added to a node after a setState update", () => {
     const mountedFn = jest.fn();
+    const withMountedChecker = enhance(({ mounted }) => mounted(mountedFn));
+    const withBoolean = enhance(({ mounted, setState, state = false }) => {
+      mounted(() => setState(true));
+      return state;
+    });
 
-    const Wrapper = (_, { mounted, setState, state = 1 }) => {
-      mounted(() => {
-        setState(2);
-      });
+    const Child = withMountedChecker(null, () => {});
 
-      return state === 1 ? [<Child />] : [<Child />, <Child />];
-    };
+    const Wrapper = ({ showChildThatMounts }) =>
+      showChildThatMounts ? [<Child />, <Child />] : [<Child />];
+    const WrapperWithBoolean = withBoolean("showChildThatMounts", Wrapper);
 
-    const Child = (_, { mounted }) => {
-      mounted(mountedFn);
-    };
-
-    const actual = configuredReconcile(<Wrapper />);
+    const actual = configuredReconcile(<WrapperWithBoolean />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
-
     expect(mountedFn).toHaveBeenCalledTimes(2);
-    expect(actual.children.length).toBe(2);
+    expect(actual.children[0].children.length).toBe(2);
   });
 
-  // TODO: refactor with enhance
   test("reconcile should unmount children removed from a node after a setState update", () => {
     const unmountedFn = jest.fn();
 
-    const Wrapper = (_, { mounted, setState, state = 2 }) => {
-      mounted(() => {
-        setState(1);
-      });
+    const withBoolean = enhance(({ mounted, setState, state = true }) => {
+      mounted(() => setState(false));
+      return state;
+    });
+    const withUnmountedChecker = enhance(({ unmounted }) =>
+      unmounted(unmountedFn)
+    );
 
-      return state === 1 ? [<Child />] : [<Child />, <ChildThatUnmounts />];
-    };
-
-    const ChildThatUnmounts = (_, { unmounted }) => {
-      unmounted(unmountedFn);
-    };
+    const Wrapper = ({ showChildThatUnmounts }) =>
+      showChildThatUnmounts ? [<Child />, <ChildThatUnmounts />] : [<Child />];
+    const WrapperWithBoolean = withBoolean("showChildThatUnmounts", Wrapper);
 
     const Child = () => {};
+    const ChildThatUnmounts = withUnmountedChecker(null, Child);
 
-    const actual = configuredReconcile(<Wrapper />);
+    const actual = configuredReconcile(<WrapperWithBoolean />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
