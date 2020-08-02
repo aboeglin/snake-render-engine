@@ -5,7 +5,7 @@ import { createColorProgram, createTextureProgram } from "./programs";
 import { makeTextureHandler } from "./textures";
 
 export const initRenderer = ({ gl, width, height }) => {
-  if (gl === undefined) {
+  if (!gl) {
     throw new Error("You must provide a context !");
   }
 
