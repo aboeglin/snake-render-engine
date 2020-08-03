@@ -79,21 +79,27 @@ export const Spark = (vnode) => {
 
     // Don't pass second parameter if __ENHANCER__ is false/undefined.
 
-    return (_lastRender =
-      typeof _vnode.type === "function"
-        ? _vnode.type(
-            { ..._vnode.props, children: _vnode.children },
-            {
-              state,
-              setState,
-              mounted,
-              unmounted,
-              dynamic,
-              onGlobalKeyPress,
-              onGlobalKeyDown,
-            }
-          )
-        : vnode.children);
+    if (_vnode.type && _vnode.type.__ENHANCER__) {
+      _lastRender = _vnode.type(
+        { ..._vnode.props, children: _vnode.children },
+        {
+          state,
+          setState,
+          mounted,
+          unmounted,
+          dynamic,
+          onGlobalKeyPress,
+          onGlobalKeyDown,
+        }
+      );
+    } else {
+      _lastRender =
+        typeof _vnode.type === "function"
+          ? _vnode.type({ ..._vnode.props, children: _vnode.children })
+          : vnode.children;
+    }
+
+    return _lastRender;
   };
 
   const isDirty = () => _dirty;

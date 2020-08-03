@@ -13,7 +13,7 @@ const getTime = () => {
   return t;
 };
 
-const configuredWithClock = withClock(getTime);
+const configuredWithClock = withClock(getTime)("time");
 
 describe("withClock", () => {
   test("It should export a withClock function", () => {
@@ -59,7 +59,7 @@ describe("withClock", () => {
   test("withClock should render children", () => {
     jest.useFakeTimers();
 
-    const Snake = (_, { time }) => {
+    const Snake = ({ time }) => {
       return {
         type: "ANY",
         x: 2,
@@ -68,7 +68,7 @@ describe("withClock", () => {
       };
     };
 
-    const SnakeWithTime = withClock(getTime, Snake);
+    const SnakeWithTime = configuredWithClock(Snake);
 
     const Scene = () => <SnakeWithTime />;
 
@@ -84,10 +84,8 @@ describe("withClock", () => {
           children: [
             {
               type: Snake,
-              props: { time: 6, children: [] },
-              children: [
-                { type: "ANY", x: 2, y: 3, z: undefined, children: [] },
-              ],
+              props: { time: 6 },
+              children: [{ type: "ANY", x: 2, y: 3, z: 6, children: [] }],
               key: undefined,
             },
           ],

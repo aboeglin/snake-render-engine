@@ -2,7 +2,7 @@ import { createElement } from "./create-element";
 
 describe("createElement", () => {
   test("it should build a vnode object", () => {
-    const SomeNode = (props) => {};
+    const SomeNode = () => {};
 
     const vnode = createElement(SomeNode, { someProp: "value" }, [
       "some child",

@@ -1,9 +1,12 @@
 import { handleEvent, fromDOMEvent } from "./events";
-import { reconcile } from "./core";
+import { reconcile, enhance } from "./core";
 import Rect from "./nodes/rect";
 import { createElement } from "./create-element";
 
 /** @jsx createElement */
+
+const withGlobalEventHandler = (handler, eventName) =>
+  enhance((features) => features[eventName](handler));
 
 // TODO: Rewrite tests with reconcile to have a real tree
 // TODO: Move global events to instance method instead.
@@ -151,13 +154,14 @@ describe("events", () => {
     }).not.toThrow();
   });
 
-  test("handleEvent should call onGlobalKeyPress on node with keypress event object", () => {
+  test("handleEvent should call onGlobalKeyPress on node with key event object", () => {
     const keyPressHandler = jest.fn();
     const Root = () => <KeyPressHandler />;
 
-    const KeyPressHandler = (_, { onGlobalKeyPress }) => {
-      onGlobalKeyPress(keyPressHandler);
-    };
+    const KeyPressHandler = withGlobalEventHandler(
+      keyPressHandler,
+      "onGlobalKeyPress"
+    )(null, () => {});
 
     const root = reconcile({}, <Root />);
 
@@ -179,14 +183,15 @@ describe("events", () => {
 
     const Root = () => <KeyPressHandler1 />;
 
-    const KeyPressHandler1 = (_, { onGlobalKeyPress }) => {
-      onGlobalKeyPress(keyPressHandler1);
-      return <KeyPressHandler2 />;
-    };
+    const KeyPressHandler1 = withGlobalEventHandler(
+      keyPressHandler1,
+      "onGlobalKeyPress"
+    )(null, () => <KeyPressHandler2 />);
 
-    const KeyPressHandler2 = (_, { onGlobalKeyPress }) => {
-      onGlobalKeyPress(keyPressHandler2);
-    };
+    const KeyPressHandler2 = withGlobalEventHandler(
+      keyPressHandler2,
+      "onGlobalKeyPress"
+    )(null, () => {});
 
     const root = reconcile({}, <Root />);
 
@@ -203,13 +208,14 @@ describe("events", () => {
     expect(keyPressHandler2).toHaveBeenCalledWith(event);
   });
 
-  test("handleEvent should call onGlobalKeyDown on node with keypress event object", () => {
+  test("handleEvent should call onGlobalKeyDown on node with key event object", () => {
     const keyDownHandler = jest.fn();
     const Root = () => <KeyDownHandler />;
 
-    const KeyDownHandler = (_, { onGlobalKeyDown }) => {
-      onGlobalKeyDown(keyDownHandler);
-    };
+    const KeyDownHandler = withGlobalEventHandler(
+      keyDownHandler,
+      "onGlobalKeyDown"
+    )(null, () => {});
 
     const root = reconcile({}, <Root />);
 
@@ -225,20 +231,21 @@ describe("events", () => {
     expect(keyDownHandler).toHaveBeenCalledWith(event);
   });
 
-  test("handleEvent should call onGlobalKeyPress on any node that defines it", () => {
+  test("handleEvent should call onGlobalKeyDown on any node that defines it", () => {
     const keyDownHandler1 = jest.fn();
     const keyDownHandler2 = jest.fn();
 
     const Root = () => <KeyPressHandler1 />;
 
-    const KeyPressHandler1 = (_, { onGlobalKeyDown }) => {
-      onGlobalKeyDown(keyDownHandler1);
-      return <KeyPressHandler2 />;
-    };
+    const KeyPressHandler1 = withGlobalEventHandler(
+      keyDownHandler1,
+      "onGlobalKeyDown"
+    )(null, () => <KeyPressHandler2 />);
 
-    const KeyPressHandler2 = (_, { onGlobalKeyDown }) => {
-      onGlobalKeyDown(keyDownHandler2);
-    };
+    const KeyPressHandler2 = withGlobalEventHandler(
+      keyDownHandler2,
+      "onGlobalKeyDown"
+    )(null, () => {});
 
     const root = reconcile({}, <Root />);
 

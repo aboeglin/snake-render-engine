@@ -226,23 +226,28 @@ describe("core", () => {
 
     const Wrapper = () => <ChildWithValue value={18} />;
 
-    const withValue = enhance(({ setState, mounted, state = 1 }, { value }) => {
-      mounted(() => setState(value));
-      return state;
-    });
+    const valueEnhancer = jest.fn(
+      ({ setState, mounted, state = 1 }, { value }) => {
+        mounted(() => setState(value));
+        return state;
+      }
+    );
+    const withValue = enhance(valueEnhancer);
 
     const Child = ({ value }) => <GrandChild value={value} />;
-    const ChildWithValue = jest.fn(withValue("value", Child));
+    const ChildWithValue = withValue("value", Child);
 
-    const withMountedChecker = enhance(({ mounted }) => mounted(mountedFn));
-    const GrandChild = jest.fn(withMountedChecker(null, () => {}));
+    const mountedEnhancer = jest.fn(({ mounted }) => mounted(mountedFn));
+
+    const withMountedChecker = enhance(mountedEnhancer);
+    const GrandChild = withMountedChecker(null, () => {});
 
     configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(mountedFn).toHaveBeenCalledTimes(1);
-    expect(ChildWithValue).toHaveBeenCalledTimes(2);
-    expect(GrandChild).toHaveBeenCalledTimes(2);
+    expect(valueEnhancer).toHaveBeenCalledTimes(2);
+    expect(mountedEnhancer).toHaveBeenCalledTimes(2);
   });
 
   test("nodes should be given an unmounted function that takes a function that is executed when the node is not rendered anymore", () => {
@@ -280,20 +285,22 @@ describe("core", () => {
 
     const Wrapper = () => <ANode />;
 
-    const withUnmountedChecker = enhance(({ unmounted, setState, mounted }) => {
+    const enhancer = jest.fn(({ unmounted, setState, mounted }) => {
       mounted(() => {
         setState("Trigger update");
       });
       unmounted(unmountedFn);
     });
 
-    const ANode = jest.fn(withUnmountedChecker(null, () => {}));
+    const withUnmountedChecker = enhance(enhancer);
+
+    const ANode = withUnmountedChecker(null, () => {});
 
     configuredReconcile(<Wrapper show={true} />);
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(unmountedFn).not.toHaveBeenCalled();
-    expect(ANode).toHaveBeenCalledTimes(2);
+    expect(enhancer).toHaveBeenCalledTimes(2);
   });
 
   test("reconcile should resolve the children correctly", () => {
@@ -360,22 +367,23 @@ describe("core", () => {
   });
 
   test("props should update", () => {
-    const Wrapper = (_, { mounted, setState, state = 2 }) => {
-      mounted(() => {
-        setState(15);
-      });
-      return <StateOwner value={state} />;
-    };
+    const withState = enhance(({ mounted, setState, state = 2 }) => {
+      mounted(() => setState(15));
+      return state;
+    });
+
+    const Wrapper = ({ value }) => <StateOwner value={value} />;
+    const WrapperWithValue = withState("value", Wrapper);
 
     const StateOwner = ({ value }) => {
       return value;
     };
 
-    const actual = configuredReconcile(<Wrapper />);
+    const actual = configuredReconcile(<WrapperWithValue />);
 
-    expect(actual.children[0].children).toBe(2);
+    expect(actual.children[0].children[0].children).toBe(2);
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
-    expect(actual.children[0].children).toBe(15);
+    expect(actual.children[0].children[0].children).toBe(15);
   });
 
   test("setState should trigger a tree update", () => {
@@ -505,16 +513,17 @@ describe("core", () => {
         return state;
       }
     );
+
+    const GrandChild = jest.fn(({ value }) => value);
+    const GrandChildThatUpdates = updateTriggerer("value", GrandChild);
+
     const Child = ({ value }) => <GrandChildThatUpdates value={value} />;
     const ChildThatUpdates = updateTriggerer(null, Child);
-
-    const GrandChild = ({ value }) => value;
-    const GrandChildThatUpdates = jest.fn(updateTriggerer("value", GrandChild));
 
     const actual = configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
-    expect(GrandChildThatUpdates).toHaveBeenCalledTimes(4);
+    expect(GrandChild).toHaveBeenCalledTimes(4);
     expect(
       actual.children[0].children[0].children[0].children[0].children
     ).toBe(18);
@@ -752,16 +761,16 @@ describe("core", () => {
   });
 
   test("nodes should be able to declare themselves as dynamic, making them being re-rendered as often as possible", () => {
-    jest.useFakeTimers();
-    const makeDynamic = enhance(({ dynamic }) => dynamic(true));
-    const DynamicNode = jest.fn(makeDynamic(null, () => {}));
+    const enhancer = jest.fn(({ dynamic }) => dynamic(true));
+    const makeDynamic = enhance(enhancer);
+    const DynamicNode = makeDynamic(null, () => {});
 
     configuredReconcile(<DynamicNode />); // First render
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL); // Second render
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL); // Third render
 
-    expect(DynamicNode).toHaveBeenCalledTimes(3);
+    expect(enhancer).toHaveBeenCalledTimes(3);
   });
 
   test("nodes that are nested should not have their state reset when some parent triggers an update", () => {
