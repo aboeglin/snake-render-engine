@@ -3,9 +3,9 @@ import SRE, {
   initWithRenderer,
   Rect,
   withClock,
-  reconcile,
+  enhance,
 } from "sre";
-import { dropLast, map, once, pipe } from "ramda";
+import { dropLast, map, once, pipe, reverse } from "ramda";
 
 const canvas = document.getElementById("canvas");
 const height = canvas.height;
@@ -23,49 +23,42 @@ const Directions = {
   RIGHT: "RIGHT",
 };
 
-// const withDirection = (Node) => {
-//   const Direction = (
-//     props,
-//     { onGlobalKeyDown, state = Directions.UP, setState }
-//   ) => {
-//     onGlobalKeyDown((e) => {
-//       if (e.key === "ArrowDown" && state !== Directions.UP) {
-//         setState(Directions.DOWN);
-//       } else if (e.key === "ArrowUp" && state !== Directions.DOWN) {
-//         setState(Directions.UP);
-//       } else if (e.key === "ArrowLeft" && state !== Directions.RIGHT) {
-//         setState(Directions.LEFT);
-//       } else if (e.key === "ArrowRight" && state !== Directions.LEFT) {
-//         setState(Directions.RIGHT);
-//       }
-//     });
-
-//     return <Node {...props} direction={state} />;
-//   };
-//   return Direction;
-// };
-
 const getT0 = once((t) => t);
 
 const INITIAL_TAIL = [{ x: 320, y: 0 }, { x: 320, y: -20 }, { x: 320, y: -40 }];
-const withTail = (Node) => {
-  const Tail = (
-    props,
+
+const deriveTail = enhance(
+  (
     {
       onGlobalKeyDown,
       setState,
-      state = { tail: INITIAL_TAIL, ticks: 0, direction: Directions.UP, wishedDirection: Directions.UP },
-    }
+      state = {
+        tail: INITIAL_TAIL,
+        ticks: 0,
+        direction: Directions.UP,
+        wishedDirection: Directions.UP,
+      },
+    },
+    props
   ) => {
     onGlobalKeyDown((e) => {
       if (state.direction === state.wishedDirection) {
         if (e.key === "ArrowDown" && state.wishedDirection !== Directions.UP) {
           setState({ ...state, wishedDirection: Directions.DOWN });
-        } else if (e.key === "ArrowUp" && state.wishedDirection !== Directions.DOWN) {
+        } else if (
+          e.key === "ArrowUp" &&
+          state.wishedDirection !== Directions.DOWN
+        ) {
           setState({ ...state, wishedDirection: Directions.UP });
-        } else if (e.key === "ArrowLeft" && state.wishedDirection !== Directions.RIGHT) {
+        } else if (
+          e.key === "ArrowLeft" &&
+          state.wishedDirection !== Directions.RIGHT
+        ) {
           setState({ ...state, wishedDirection: Directions.LEFT });
-        } else if (e.key === "ArrowRight" && state.wishedDirection !== Directions.LEFT) {
+        } else if (
+          e.key === "ArrowRight" &&
+          state.wishedDirection !== Directions.LEFT
+        ) {
           setState({ ...state, wishedDirection: Directions.RIGHT });
         }
       }
@@ -94,21 +87,32 @@ const withTail = (Node) => {
       }
 
       const newTail = [{ x: newX, y: newY }, ...middlePieces];
-      setState({ ...state, tail: newTail, ticks: currentTicks, direction: state.wishedDirection });
+      setState({
+        ...state,
+        tail: newTail,
+        ticks: currentTicks,
+        direction: state.wishedDirection,
+      });
     }
-    return <Node {...props} tail={state.tail} />;
-  };
-  return Tail;
-};
+    return state.tail;
+  }
+);
+
+const pipeEnhancers = (...args) => pipe(...reverse(args));
+
+const withTail = pipeEnhancers(
+  withClock(Date.now)("time"),
+  deriveTail("tail")
+);
 
 const Snake = ({ tail }) =>
   map(({ x, y }) => <TailPiece position={{ x, y }} />)(tail);
 
-const TailPiece = ({ position }, {}) => (
+const TailPiece = ({ position }) => (
   <Rect x={position.x} y={position.y} z={0} width={18} height={18} />
 );
 
-const EnhancedSnake = withClock(Date.now, withTail(Snake));
+const EnhancedSnake = withTail(Snake);
 
 const Scene = () => <EnhancedSnake />;
 
