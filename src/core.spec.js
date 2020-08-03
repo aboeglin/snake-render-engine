@@ -1,5 +1,4 @@
 import { reconcile, initWithRenderer, enhance } from "./core";
-import { createClock } from "./clock";
 import { createElement } from "./create-element";
 import constants from "./constants";
 
@@ -343,22 +342,21 @@ describe("core", () => {
     expect(actual).toEqual(expected);
   });
 
-  // TODO: refactor with enhance
   test("state should not be shared for different elements", () => {
     const Wrapper = () => [<StateOwner value={3} />, <StateOwner value={28} />];
 
-    const StateOwner = ({ value }, { setState, state, mounted }) => {
-      mounted(() => {
-        setState(value);
-      });
+    const withState = enhance(({ setState, state, mounted }, { value }) => {
+      mounted(() => setState(value));
       return state;
-    };
+    });
+
+    const StateOwner = withState("value", ({ value }) => value);
 
     const actual = configuredReconcile(<Wrapper />);
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
-    expect(actual.children[0].children).toBe(3);
-    expect(actual.children[1].children).toBe(28);
+    expect(actual.children[0].children[0].children).toBe(3);
+    expect(actual.children[1].children[0].children).toBe(28);
   });
 
   test("props should update", () => {
@@ -380,19 +378,18 @@ describe("core", () => {
     expect(actual.children[0].children).toBe(15);
   });
 
-  // TODO: refactor with enhance
   test("setState should trigger a tree update", () => {
     let actual = null;
 
     const Wrapper = () => <StateDude />;
 
-    const StateDude = (
-      _,
-      { setState, mounted, state = { mounted: false } }
-    ) => {
-      mounted(() => setState({ mounted: true }));
-      return <Child mounted={state.mounted} />;
-    };
+    const withState = enhance(({ setState, mounted, state = false }) => {
+      mounted(() => setState(true));
+      return state;
+    });
+
+    const Dude = ({ mounted }) => <Child mounted={mounted} />;
+    const StateDude = withState("mounted", Dude);
 
     const Child = () => {};
 
@@ -401,17 +398,24 @@ describe("core", () => {
       props: {},
       children: [
         {
-          type: StateDude,
+          type: expect.anything(), // enhancer
           props: {},
+          key: undefined,
           children: [
             {
-              type: Child,
+              type: Dude,
               props: { mounted: true },
-              children: [],
+              children: [
+                {
+                  type: Child,
+                  props: { mounted: true },
+                  children: [],
+                  key: undefined,
+                },
+              ],
               key: undefined,
             },
           ],
-          key: undefined,
         },
       ],
       key: undefined,
@@ -423,26 +427,30 @@ describe("core", () => {
     expect(actual).toEqual(expected);
   });
 
-  // TODO: refactor with enhance
   test("updates should be batched", () => {
     let actual = null;
 
     const delay = constants.BATCH_UPDATE_INTERVAL - 1;
 
     const Wrapper = () => [
-      <Child value={18} delay={delay} />,
-      <Child value={27} delay={0} />,
+      <ChildWithFakeAsync value={18} delay={delay} />,
+      <ChildWithFakeAsync value={27} delay={0} />,
     ];
 
-    const Child = ({ value, delay }, { state, setState, mounted }) => {
-      mounted(() => {
-        setTimeout(() => {
-          setState(value);
-        }, delay);
-      });
+    const withFakeAsync = enhance(
+      ({ state, setState, mounted }, { value, delay }) => {
+        mounted(() => {
+          setTimeout(() => {
+            setState(value);
+          }, delay);
+        });
 
-      return state;
-    };
+        return state;
+      }
+    );
+
+    const Child = ({ value }) => value;
+    const ChildWithFakeAsync = withFakeAsync("value", Child);
 
     actual = configuredReconcile(<Wrapper />);
 
@@ -453,16 +461,30 @@ describe("core", () => {
       props: {},
       children: [
         {
-          type: Child,
-          props: { value: 18, delay },
-          children: 18,
+          type: expect.anything(), // enhancer
           key: undefined,
+          props: { value: 18, delay },
+          children: [
+            {
+              type: Child,
+              props: { value: 18, delay },
+              children: 18,
+              key: undefined,
+            },
+          ],
         },
         {
-          type: Child,
-          props: { value: 27, delay: 0 },
-          children: 27,
+          type: expect.anything(), // enhancer
           key: undefined,
+          props: { value: 27, delay: 0 },
+          children: [
+            {
+              type: Child,
+              props: { value: 27, delay: 0 },
+              children: 27,
+              key: undefined,
+            },
+          ],
         },
       ],
       key: undefined,
@@ -471,107 +493,105 @@ describe("core", () => {
     expect(actual).toEqual(expected);
   });
 
-  // TODO: refactor with enhance
   test("updates should not recompute sparks that have already been updated the same batch should update the same spark twice", () => {
-    const Wrapper = () => [<Child value={18} />, <Child value={27} />];
+    const Wrapper = () => [
+      <ChildThatUpdates value={18} />,
+      <ChildThatUpdates value={27} />,
+    ];
 
-    const Child = ({ value }, { setState, mounted }) => {
-      mounted(() => {
-        setState(value);
-      });
+    const updateTriggerer = enhance(
+      ({ setState, state, mounted }, { value }) => {
+        mounted(() => setState(value));
+        return state;
+      }
+    );
+    const Child = ({ value }) => <GrandChildThatUpdates value={value} />;
+    const ChildThatUpdates = updateTriggerer(null, Child);
 
-      return <GrandChild value={value} />;
-    };
+    const GrandChild = ({ value }) => value;
+    const GrandChildThatUpdates = jest.fn(updateTriggerer("value", GrandChild));
 
-    const GrandChild = jest.fn(({ value }, { mounted, setState, state }) => {
-      mounted(() => {
-        setState(value);
-      });
+    const actual = configuredReconcile(<Wrapper />);
 
+    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
+    expect(GrandChildThatUpdates).toHaveBeenCalledTimes(4);
+    expect(
+      actual.children[0].children[0].children[0].children[0].children
+    ).toBe(18);
+    expect(
+      actual.children[1].children[0].children[0].children[0].children
+    ).toBe(27);
+  });
+
+  test("update propagation should stop if state did not change", () => {
+    const withState = enhance(({ mounted, setState, state = 28 }) => {
+      mounted(() => setState(28));
       return state;
     });
-
-    const actual = configuredReconcile(<Wrapper />);
-
-    jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
-    expect(GrandChild).toHaveBeenCalledTimes(4);
-    expect(actual.children[0].children[0].children).toBe(18);
-    expect(actual.children[1].children[0].children).toBe(27);
-  });
-
-  // TODO: refactor with enhance
-  test("update propagation should stop if state did not change", () => {
-    const Wrapper = (_, { mounted, setState, state = 28 }) => {
-      mounted(() => {
-        setState(28);
-      });
-      return <Child value={state} />;
-    };
+    const Wrapper = ({ value }) => <Child value={value} />;
+    const WrapperWithValue = withState("value", Wrapper);
 
     const Child = jest.fn(({ value }) => {
       return value;
     });
 
-    const actual = configuredReconcile(<Wrapper />);
+    const actual = configuredReconcile(<WrapperWithValue />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
-    expect(actual.children[0].children).toBe(28);
+    expect(actual.children[0].children[0].children).toBe(28);
   });
 
-  // TODO: refactor with enhance
   test("update propagation should stop if props did not change", () => {
-    const Wrapper = (_, { mounted, setState }) => {
-      mounted(() => {
-        setState(29);
-      });
-      return <Child value={28} />;
-    };
+    const withState = enhance(({ mounted, setState, state = 28 }) => {
+      mounted(() => setState(29));
+      return state;
+    });
+    const Wrapper = ({ value }) => <Child value={28} />;
+    const WrapperWithValue = withState("value", Wrapper);
 
     const Child = jest.fn(({ value }) => {
       return value;
     });
 
-    const actual = configuredReconcile(<Wrapper />);
+    const actual = configuredReconcile(<WrapperWithValue />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(1);
-    expect(actual.children[0].children).toBe(28);
+    expect(actual.children[0].children[0].children).toBe(28);
   });
 
-  // TODO: refactor with enhance
   test("update propagation should not stop if props did change", () => {
-    const Wrapper = (_, { mounted, setState, state = 28 }) => {
-      mounted(() => {
-        setState(29);
-      });
-      return <Child value={state} />;
-    };
+    const withState = enhance(({ mounted, setState, state = 28 }) => {
+      mounted(() => setState(29));
+      return state;
+    });
+    const Wrapper = ({ value }) => <Child value={value} />;
+    const WrapperWithValue = withState("value", Wrapper);
 
     const Child = jest.fn(({ value }) => {
       return value;
     });
 
-    const actual = configuredReconcile(<Wrapper />);
+    const actual = configuredReconcile(<WrapperWithValue />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
-    expect(actual.children[0].children).toBe(29);
+    expect(actual.children[0].children[0].children).toBe(29);
   });
 
-  // TODO: refactor with enhance
   test("update propagation should not stop if prop count did change", () => {
-    const Wrapper = (_, { mounted, setState, state = 28 }) => {
-      mounted(() => {
-        setState(29);
-      });
-
-      return state === 28 ? (
+    const withState = enhance(({ mounted, setState, state = 28 }) => {
+      mounted(() => setState(29));
+      return state;
+    });
+    const Wrapper = ({ value }) =>
+      value === 28 ? (
         <Child value={28} />
       ) : (
-        <Child value={28} valueFromState={state} />
+        <Child value={28} valueFromState={value} />
       );
-    };
+    const WrapperWithValue = withState("value", Wrapper);
 
     const Child = jest.fn(({ value, valueFromState }) => ({
       value,
@@ -579,11 +599,11 @@ describe("core", () => {
       type: "UNKNOWN",
     }));
 
-    const actual = configuredReconcile(<Wrapper />);
+    const actual = configuredReconcile(<WrapperWithValue />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
     expect(Child).toHaveBeenCalledTimes(2);
-    expect(actual.children[0].children).toEqual([
+    expect(actual.children[0].children[0].children).toEqual([
       { type: "UNKNOWN", value: 28, valueFromState: 29, children: [] },
     ]);
   });
@@ -744,39 +764,50 @@ describe("core", () => {
     expect(DynamicNode).toHaveBeenCalledTimes(3);
   });
 
-  // TODO: refactor with enhance
   test("nodes that are nested should not have their state reset when some parent triggers an update", () => {
     let mountedFn = null;
 
-    const GrandFather = (_, { setState, state = null }) => {
-      return <Father value={state} onChanged={(v) => setState(v)} />;
-    };
-
-    const Father = (props) => {
-      return <Child value={props.value} onChanged={props.onChanged} />;
-    };
-
-    const Child = jest.fn((props, { mounted, setState, state = 1 }) => {
+    const withValueKeeper = enhance(({ setState, state = null }) => {
+      const setValue = (v) => setState(v);
+      return { setValue, value: state };
+    });
+    const withState = enhance(({ mounted, setState, state = 1 }) => {
       if (!mountedFn) {
         mountedFn = jest.fn(() => setState(2));
       }
-
       mounted(mountedFn);
-
-      if (state === 2) {
-        props.onChanged(state);
-      }
-
       return state;
     });
 
-    const vtree = configuredReconcile(<GrandFather />);
+    const GrandFather = ({ valueKeeper }) => (
+      <Father value={valueKeeper.value} onChanged={valueKeeper.setValue} />
+    );
+    const GrandFatherWithValueKeeper = withValueKeeper(
+      "valueKeeper",
+      GrandFather
+    );
+
+    const Father = (props) => {
+      return <ChildWithValue value={props.value} onChanged={props.onChanged} />;
+    };
+
+    const Child = jest.fn(({ onChanged, value }) => {
+      if (value === 2) {
+        onChanged(value);
+      }
+      return value;
+    });
+    const ChildWithValue = withState("value", Child);
+
+    const vtree = configuredReconcile(<GrandFatherWithValueKeeper />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 
     expect(Child).toHaveBeenCalledTimes(3);
     expect(mountedFn).toHaveBeenCalledTimes(1);
-    expect(vtree.children[0].children[0].children).toBe(2);
+    expect(vtree.children[0].children[0].children[0].children[0].children).toBe(
+      2
+    );
   });
 
   test("enhance should provide node side-effect utilities to deal with lifecycles or state", () => {
