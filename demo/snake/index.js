@@ -5,7 +5,7 @@ import SRE, {
   withClock,
   enhance,
 } from "sre";
-import { dropLast, map, once, pipe, reverse } from "ramda";
+import { curry, dropLast, map, once, pipe, reverse } from "ramda";
 
 const canvas = document.getElementById("canvas");
 const height = canvas.height;
@@ -27,6 +27,36 @@ const getT0 = once((t) => t);
 
 const INITIAL_TAIL = [{ x: 320, y: 0 }, { x: 320, y: -20 }, { x: 320, y: -40 }];
 
+const handleKeyDown = curry(({ state, setState }, e) => {
+  if (state.direction === state.wishedDirection) {
+    if (e.key === "ArrowDown" && state.wishedDirection !== Directions.UP) {
+      setState({ ...state, wishedDirection: Directions.DOWN });
+    } else if (
+      e.key === "ArrowUp" &&
+      state.wishedDirection !== Directions.DOWN
+    ) {
+      setState({ ...state, wishedDirection: Directions.UP });
+    } else if (
+      e.key === "ArrowLeft" &&
+      state.wishedDirection !== Directions.RIGHT
+    ) {
+      setState({ ...state, wishedDirection: Directions.LEFT });
+    } else if (
+      e.key === "ArrowRight" &&
+      state.wishedDirection !== Directions.LEFT
+    ) {
+      setState({ ...state, wishedDirection: Directions.RIGHT });
+    }
+  }
+});
+
+const deriveCurrentTicks = curry((tailLength, time) =>
+  pipe(
+    (t) => t - getT0(t),
+    (t) => Math.floor((t * Math.sqrt(tailLength)) / 300)
+  )(time)
+);
+
 const deriveTail = enhance(
   (
     {
@@ -41,33 +71,8 @@ const deriveTail = enhance(
     },
     props
   ) => {
-    onGlobalKeyDown((e) => {
-      if (state.direction === state.wishedDirection) {
-        if (e.key === "ArrowDown" && state.wishedDirection !== Directions.UP) {
-          setState({ ...state, wishedDirection: Directions.DOWN });
-        } else if (
-          e.key === "ArrowUp" &&
-          state.wishedDirection !== Directions.DOWN
-        ) {
-          setState({ ...state, wishedDirection: Directions.UP });
-        } else if (
-          e.key === "ArrowLeft" &&
-          state.wishedDirection !== Directions.RIGHT
-        ) {
-          setState({ ...state, wishedDirection: Directions.LEFT });
-        } else if (
-          e.key === "ArrowRight" &&
-          state.wishedDirection !== Directions.LEFT
-        ) {
-          setState({ ...state, wishedDirection: Directions.RIGHT });
-        }
-      }
-    });
-
-    const currentTicks = pipe(
-      (t) => t - getT0(t),
-      (t) => Math.floor((t * Math.sqrt(state.tail.length)) / 300)
-    )(props.time);
+    onGlobalKeyDown(handleKeyDown({ state, setState }));
+    const currentTicks = deriveCurrentTicks(state.tail.length, props.time);
 
     if (currentTicks > state.ticks) {
       // perform move:
@@ -100,10 +105,7 @@ const deriveTail = enhance(
 
 const pipeEnhancers = (...args) => pipe(...reverse(args));
 
-const withTail = pipeEnhancers(
-  withClock(Date.now)("time"),
-  deriveTail("tail")
-);
+const withTail = pipeEnhancers(withClock(Date.now)("time"), deriveTail("tail"));
 
 const Snake = ({ tail }) =>
   map(({ x, y }) => <TailPiece position={{ x, y }} />)(tail);
