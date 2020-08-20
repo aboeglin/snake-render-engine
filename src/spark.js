@@ -62,6 +62,7 @@ export const Spark = (vnode) => {
 
   const render = (vnode) => {
     _dirty = false;
+
     props = vnode.props;
 
     if (

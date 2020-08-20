@@ -2,11 +2,76 @@ import SRE, {
   initRenderer,
   initWithRenderer,
   Rect,
-  withClock,
   enhance,
+  onGlobalKeyDown,
 } from "sre";
-import { curry, dropLast, map, once, pipe, reverse } from "ramda";
 
+import {
+  append,
+  assoc,
+  curry,
+  dropLast,
+  map,
+  objOf,
+  once,
+  pipe,
+  propEq,
+  propOr,
+  reject,
+  when,
+  forEach,
+} from "ramda";
+
+// Store
+const makeStore = (initialState = {}, subs = []) => {
+  let state = initialState;
+  let listeners = [];
+
+  const dispatch = curry((action, payload) => {
+    state = action(state, payload);
+    listeners.forEach((f) => f(state));
+  });
+
+  const listen = (cb) => {
+    listeners = append(cb, listeners);
+    cb(state);
+
+    return () => {
+      listeners = reject(cb, listeners);
+    };
+  };
+
+  const getState = () => state;
+
+  forEach((s) => s(dispatch, getState))(subs);
+
+  return {
+    listen,
+    dispatch,
+  };
+};
+
+const withStore = (store) => (
+  mapStateToProps = () => ({}),
+  mapDispatchToProps = () => ({})
+) => {
+  let unlisten = null;
+  return enhance(({ state = {}, setState, mounted, unmounted }) => {
+    const handleStateChanged = (newState) => {
+      setState(mapStateToProps(newState));
+    };
+
+    mounted(() => {
+      unlisten = store.listen(handleStateChanged);
+    });
+
+    unmounted(() => unlisten && unlisten());
+
+    return { ...state, ...mapDispatchToProps(store.dispatch) };
+  })("store");
+};
+
+// ---- BEGINNING ---
 const canvas = document.getElementById("canvas");
 const width = canvas.width;
 const height = canvas.height;
@@ -23,35 +88,16 @@ const Directions = Object.freeze({
   RIGHT: "RIGHT",
 });
 
+const INITIAL_TAIL = [{ x: 310, y: 30 }, { x: 310, y: 10 }, { x: 310, y: -10 }, { x: 310, y: -30 }, { x: 310, y: -50 }];
+const INITIAL_STATE = {
+  tail: INITIAL_TAIL,
+  direction: Directions.UP,
+  wishedDirection: Directions.UP,
+};
+
 const getT0 = once((t) => t);
 
-const INITIAL_TAIL = [{ x: 310, y: 10 }, { x: 310, y: -10 }];
-
-// const TickChange = (state = , )
-
-const handleKeyDown = curry(({ state, setState }, e) => {
-  const wd = state.wishedDirection;
-  if (state.direction === wd) {
-    if (e.key === "ArrowDown" && wd !== Directions.UP) {
-      setState({ ...state, wishedDirection: Directions.DOWN });
-    } else if (e.key === "ArrowUp" && wd !== Directions.DOWN) {
-      setState({ ...state, wishedDirection: Directions.UP });
-    } else if (e.key === "ArrowLeft" && wd !== Directions.RIGHT) {
-      setState({ ...state, wishedDirection: Directions.LEFT });
-    } else if (e.key === "ArrowRight" && wd !== Directions.LEFT) {
-      setState({ ...state, wishedDirection: Directions.RIGHT });
-    }
-  }
-});
-
-const deriveCurrentTicks = curry((tailLength, time) =>
-  pipe(
-    (t) => t - getT0(t),
-    (dt) => Math.floor((dt * Math.sqrt(tailLength)) / 300)
-  )(time)
-);
-
-const computeMove = curry((shouldAugment, direction, tail) =>
+const computeMove = curry((direction, tail) =>
   pipe(
     objOf("d"),
     assoc("h", tail[0]),
@@ -59,125 +105,79 @@ const computeMove = curry((shouldAugment, direction, tail) =>
     when(propEq("d", Directions.RIGHT), ({ h }) => ({ x: h.x + 20, y: h.y })),
     when(propEq("d", Directions.UP), ({ h }) => ({ x: h.x, y: h.y + 20 })),
     when(propEq("d", Directions.DOWN), ({ h }) => ({ x: h.x, y: h.y - 20 })),
-    (h) => [h, ...dropLast(shouldAugment ? 0 : 1, tail)]
+    (h) => [h, ...dropLast(1, tail)]
   )(direction)
 );
 
-// Enhancers
-const INITIAL_STATE = {
-  tail: INITIAL_TAIL,
-  ticks: 0,
-  direction: Directions.UP,
-  wishedDirection: Directions.UP,
-  shouldAugment: false,
-};
-
-const deriveTail = enhance(
-  ({ onGlobalKeyDown, setState, state = INITIAL_STATE }, props) => {
-    onGlobalKeyDown(handleKeyDown({ state, setState }));
-
-    return pipe(
-      deriveCurrentTicks(state.tail.length),
-      (ticks) => ({
-        ticks,
-        tail: computeMove(
-          state.shouldAugment,
-          state.wishedDirection,
-          state.tail
-        ),
-        direction: state.wishedDirection,
-      }),
-      (d) => {
-        if (
-          d.tail[0].x === props.apples.apple.x &&
-          d.tail[0].y === props.apples.apple.y
-        ) {
-          props.apples.appleEaten();
-          setState({ ...state, shouldAugment: true });
-        }
-        return d;
-      },
-      when(
-        ({ ticks }) => ticks > state.ticks,
-        ({ ticks, tail, direction }) =>
-          setState({ ...state, tail, ticks, direction, shouldAugment: false })
-      ),
-      always(state.tail)
-    )(props.time);
-  }
-);
-
-const pipeEnhancers = (...args) => pipe(...reverse(args));
-
-const withTail = pipeEnhancers(withClock(Date.now)("time"), deriveTail("tail"));
-
-const generateRandomPosition = (random) =>
+const TickChange = (state) =>
   pipe(
-    (r) => ({ x: r() * (width - 20), y: r() * (height - 20) }), // generateRandom
-    map(
-      pipe(
-        Math.ceil,
-        (x) => x - (x % 20) + 10
-      )
-    )
-  )(random);
+    propOr(INITIAL_TAIL, "tail"),
+    computeMove(state.direction),
+    (tail) => ({ ...state, tail, direction: state.wishedDirection })
+  )(state);
 
-const makeAppleGenerator = () => {
-  let currentApple = generateRandomPosition(Math.random);
-  let cbs = [];
+const TickGenerator = (dispatch, getState) => {
+  let currentTicks = 0;
 
-  const generateApple = () => {
-    currentApple = generateRandomPosition(Math.random);
-    cbs.forEach((f) => f(currentApple));
+  const generator = () => {
+    const tailLength = getState().tail.length;
+    const time = Date.now();
+    const dt = time - getT0(time);
+    const newTicks = Math.floor((dt * Math.sqrt(tailLength)) / 300);
+
+    if (newTicks > currentTicks) {
+      currentTicks = newTicks;
+      dispatch(TickChange, null);
+    }
+
+    requestAnimationFrame(() => {
+      generator();
+    });
   };
 
-  const getCurrentApple = () => currentApple;
-
-  const listen = (fn) => {
-    cbs.push(fn);
-  };
-
-  return {
-    getCurrentApple,
-    listen,
-    generateApple,
-  };
+  generator();
 };
 
-const appleGenerator = makeAppleGenerator();
+const DirectionChange = (state, direction) => ({
+  ...state,
+  wishedDirection: direction,
+});
 
-const withApples = enhance(
-  ({ setState, state = appleGenerator.getCurrentApple(), mounted }) => {
-    mounted(() => {
-      appleGenerator.listen((newApple) => {
-        setState(newApple);
-      });
-    });
+const DirectionHandler = (dispatch, getState) => {
+  onGlobalKeyDown((e) => {
+    const { direction, wishedDirection } = getState();
+    const wd = wishedDirection;
+    if (direction === wd) {
+      if (e.key === "ArrowDown" && wd !== Directions.UP) {
+        dispatch(DirectionChange, Directions.DOWN);
+      } else if (e.key === "ArrowUp" && wd !== Directions.DOWN) {
+        dispatch(DirectionChange, Directions.UP);
+      } else if (e.key === "ArrowLeft" && wd !== Directions.RIGHT) {
+        dispatch(DirectionChange, Directions.LEFT);
+      } else if (e.key === "ArrowRight" && wd !== Directions.LEFT) {
+        dispatch(DirectionChange, Directions.RIGHT);
+      }
+    }
+  });
+};
 
-    const appleEaten = () => appleGenerator.generateApple();
-
-    return {
-      apple: state,
-      appleEaten,
-    };
-  }
-);
+const store = makeStore(INITIAL_STATE, [TickGenerator, DirectionHandler]);
 
 // Components
-const Snake = ({ tail }) =>
+const Snake = ({ store: { tail = [] } }) =>
   map(({ x, y }) => <TailPiece position={{ x, y }} />)(tail);
 
 const TailPiece = ({ position }) => (
   <Rect x={position.x} y={position.y} z={0} width={19} height={19} />
 );
 
-const Apple = ({ apples }) =>
-  console.log("render", apples.apple) || (
-    <Rect x={apples.apple.x} y={apples.apple.y} z={0} width={10} height={10} />
-  );
+const mapStateToProps = (state) => ({
+  tail: state.tail,
+  wishedDirection: state.wishedDirection,
+  direction: state.direction,
+});
 
-const EnhancedSnake = withApples("apples")(withTail(Snake));
-const EnhancedApple = withApples("apples")(Apple);
-const Scene = () => [<EnhancedApple />, <EnhancedSnake />];
+const EnhancedSnake = withStore(store)(mapStateToProps)(Snake);
+const Scene = () => <EnhancedSnake />;
 
 run(<Scene />);
