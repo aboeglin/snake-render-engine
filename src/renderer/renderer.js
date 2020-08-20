@@ -30,34 +30,40 @@ const computeMatrixStack = (matrices) => [
 
 // TODO: add transform relative or absolute ( currently it's all absolute )
 const render = curry(({ gl, programs, getTexture, matrices }, root) => {
-  let nextMatrices = matrices;
-  if (root.type === "RECT") {
-    nextMatrices = insert(
-      1,
-      mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
-      nextMatrices
-    );
-    nextMatrices = computeMatrixStack(nextMatrices);
-    renderRect({ gl, program: programs.color, matrix: nextMatrices[0] }, root);
-  } else if (root.type === "TRANSFORM") {
-    nextMatrices = handleTransformNode(nextMatrices, root);
-  } else if (root.type === "SPRITE") {
-    // Should use same transform as rect ?
-    nextMatrices = insert(
-      1,
-      mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
-      nextMatrices
-    );
-    nextMatrices = computeMatrixStack(nextMatrices);
-    renderSprite(
-      { gl, program: programs.texture, matrix: nextMatrices[0], getTexture },
-      root
-    );
-  }
+  const recurse = (root) => {
+    let nextMatrices = matrices;
+    if (root.type === "RECT") {
+      nextMatrices = insert(
+        1,
+        mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
+        nextMatrices
+      );
+      nextMatrices = computeMatrixStack(nextMatrices);
+      renderRect(
+        { gl, program: programs.color, matrix: nextMatrices[0] },
+        root
+      );
+    } else if (root.type === "TRANSFORM") {
+      nextMatrices = handleTransformNode(nextMatrices, root);
+    } else if (root.type === "SPRITE") {
+      // Should use same transform as rect ?
+      nextMatrices = insert(
+        1,
+        mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
+        nextMatrices
+      );
+      nextMatrices = computeMatrixStack(nextMatrices);
+      renderSprite(
+        { gl, program: programs.texture, matrix: nextMatrices[0], getTexture },
+        root
+      );
+    }
 
-  propOr([], "children", root).forEach((node) =>
-    render({ gl, programs, getTexture, matrices: nextMatrices }, node)
-  );
+    propOr([], "children", root).forEach((node) => recurse(node));
+  };
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  recurse(root);
 });
 
 const renderSprite = ({ gl, program, getTexture, matrix }, root) => {

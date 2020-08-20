@@ -8,43 +8,37 @@ import SRE, {
 import { curry, dropLast, map, once, pipe, reverse } from "ramda";
 
 const canvas = document.getElementById("canvas");
-const height = canvas.height;
 const width = canvas.width;
+const height = canvas.height;
 
 const gl = canvas.getContext("webgl");
 
 const render = initRenderer({ gl, width, height });
 const run = initWithRenderer(canvas, render);
 
-const Directions = {
+const Directions = Object.freeze({
   UP: "UP",
   DOWN: "DOWN",
   LEFT: "LEFT",
   RIGHT: "RIGHT",
-};
+});
 
 const getT0 = once((t) => t);
 
-const INITIAL_TAIL = [{ x: 320, y: 0 }, { x: 320, y: -20 }, { x: 320, y: -40 }];
+const INITIAL_TAIL = [{ x: 310, y: 10 }, { x: 310, y: -10 }];
+
+// const TickChange = (state = , )
 
 const handleKeyDown = curry(({ state, setState }, e) => {
-  if (state.direction === state.wishedDirection) {
-    if (e.key === "ArrowDown" && state.wishedDirection !== Directions.UP) {
+  const wd = state.wishedDirection;
+  if (state.direction === wd) {
+    if (e.key === "ArrowDown" && wd !== Directions.UP) {
       setState({ ...state, wishedDirection: Directions.DOWN });
-    } else if (
-      e.key === "ArrowUp" &&
-      state.wishedDirection !== Directions.DOWN
-    ) {
+    } else if (e.key === "ArrowUp" && wd !== Directions.DOWN) {
       setState({ ...state, wishedDirection: Directions.UP });
-    } else if (
-      e.key === "ArrowLeft" &&
-      state.wishedDirection !== Directions.RIGHT
-    ) {
+    } else if (e.key === "ArrowLeft" && wd !== Directions.RIGHT) {
       setState({ ...state, wishedDirection: Directions.LEFT });
-    } else if (
-      e.key === "ArrowRight" &&
-      state.wishedDirection !== Directions.LEFT
-    ) {
+    } else if (e.key === "ArrowRight" && wd !== Directions.LEFT) {
       setState({ ...state, wishedDirection: Directions.RIGHT });
     }
   }
@@ -53,53 +47,63 @@ const handleKeyDown = curry(({ state, setState }, e) => {
 const deriveCurrentTicks = curry((tailLength, time) =>
   pipe(
     (t) => t - getT0(t),
-    (t) => Math.floor((t * Math.sqrt(tailLength)) / 300)
+    (dt) => Math.floor((dt * Math.sqrt(tailLength)) / 300)
   )(time)
 );
 
+const computeMove = curry((shouldAugment, direction, tail) =>
+  pipe(
+    objOf("d"),
+    assoc("h", tail[0]),
+    when(propEq("d", Directions.LEFT), ({ h }) => ({ x: h.x - 20, y: h.y })),
+    when(propEq("d", Directions.RIGHT), ({ h }) => ({ x: h.x + 20, y: h.y })),
+    when(propEq("d", Directions.UP), ({ h }) => ({ x: h.x, y: h.y + 20 })),
+    when(propEq("d", Directions.DOWN), ({ h }) => ({ x: h.x, y: h.y - 20 })),
+    (h) => [h, ...dropLast(shouldAugment ? 0 : 1, tail)]
+  )(direction)
+);
+
+// Enhancers
+const INITIAL_STATE = {
+  tail: INITIAL_TAIL,
+  ticks: 0,
+  direction: Directions.UP,
+  wishedDirection: Directions.UP,
+  shouldAugment: false,
+};
+
 const deriveTail = enhance(
-  (
-    {
-      onGlobalKeyDown,
-      setState,
-      state = {
-        tail: INITIAL_TAIL,
-        ticks: 0,
-        direction: Directions.UP,
-        wishedDirection: Directions.UP,
-      },
-    },
-    props
-  ) => {
+  ({ onGlobalKeyDown, setState, state = INITIAL_STATE }, props) => {
     onGlobalKeyDown(handleKeyDown({ state, setState }));
-    const currentTicks = deriveCurrentTicks(state.tail.length, props.time);
 
-    if (currentTicks > state.ticks) {
-      // perform move:
-      const firstPiece = state.tail[0];
-      const middlePieces = dropLast(1, state.tail);
-      let newX = firstPiece.x;
-      let newY = firstPiece.y;
-      if (state.wishedDirection === Directions.LEFT) {
-        newX = newX - 20;
-      } else if (state.wishedDirection === Directions.RIGHT) {
-        newX = newX + 20;
-      }
-      if (state.wishedDirection === Directions.UP) {
-        newY = newY + 20;
-      } else if (state.wishedDirection === Directions.DOWN) {
-        newY = newY - 20;
-      }
-
-      const newTail = [{ x: newX, y: newY }, ...middlePieces];
-      setState({
-        ...state,
-        tail: newTail,
-        ticks: currentTicks,
+    return pipe(
+      deriveCurrentTicks(state.tail.length),
+      (ticks) => ({
+        ticks,
+        tail: computeMove(
+          state.shouldAugment,
+          state.wishedDirection,
+          state.tail
+        ),
         direction: state.wishedDirection,
-      });
-    }
-    return state.tail;
+      }),
+      (d) => {
+        if (
+          d.tail[0].x === props.apples.apple.x &&
+          d.tail[0].y === props.apples.apple.y
+        ) {
+          props.apples.appleEaten();
+          setState({ ...state, shouldAugment: true });
+        }
+        return d;
+      },
+      when(
+        ({ ticks }) => ticks > state.ticks,
+        ({ ticks, tail, direction }) =>
+          setState({ ...state, tail, ticks, direction, shouldAugment: false })
+      ),
+      always(state.tail)
+    )(props.time);
   }
 );
 
@@ -107,15 +111,73 @@ const pipeEnhancers = (...args) => pipe(...reverse(args));
 
 const withTail = pipeEnhancers(withClock(Date.now)("time"), deriveTail("tail"));
 
+const generateRandomPosition = (random) =>
+  pipe(
+    (r) => ({ x: r() * (width - 20), y: r() * (height - 20) }), // generateRandom
+    map(
+      pipe(
+        Math.ceil,
+        (x) => x - (x % 20) + 10
+      )
+    )
+  )(random);
+
+const makeAppleGenerator = () => {
+  let currentApple = generateRandomPosition(Math.random);
+  let cbs = [];
+
+  const generateApple = () => {
+    currentApple = generateRandomPosition(Math.random);
+    cbs.forEach((f) => f(currentApple));
+  };
+
+  const getCurrentApple = () => currentApple;
+
+  const listen = (fn) => {
+    cbs.push(fn);
+  };
+
+  return {
+    getCurrentApple,
+    listen,
+    generateApple,
+  };
+};
+
+const appleGenerator = makeAppleGenerator();
+
+const withApples = enhance(
+  ({ setState, state = appleGenerator.getCurrentApple(), mounted }) => {
+    mounted(() => {
+      appleGenerator.listen((newApple) => {
+        setState(newApple);
+      });
+    });
+
+    const appleEaten = () => appleGenerator.generateApple();
+
+    return {
+      apple: state,
+      appleEaten,
+    };
+  }
+);
+
+// Components
 const Snake = ({ tail }) =>
   map(({ x, y }) => <TailPiece position={{ x, y }} />)(tail);
 
 const TailPiece = ({ position }) => (
-  <Rect x={position.x} y={position.y} z={0} width={18} height={18} />
+  <Rect x={position.x} y={position.y} z={0} width={19} height={19} />
 );
 
-const EnhancedSnake = withTail(Snake);
+const Apple = ({ apples }) =>
+  console.log("render", apples.apple) || (
+    <Rect x={apples.apple.x} y={apples.apple.y} z={0} width={10} height={10} />
+  );
 
-const Scene = () => <EnhancedSnake />;
+const EnhancedSnake = withApples("apples")(withTail(Snake));
+const EnhancedApple = withApples("apples")(Apple);
+const Scene = () => [<EnhancedApple />, <EnhancedSnake />];
 
 run(<Scene />);

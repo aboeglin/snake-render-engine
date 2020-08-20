@@ -199,5 +199,7 @@ export const enhance = curry((fn, key, Node) => {
     configurable: false,
   });
 
+  enhancer.displayName = Node.name;
+
   return enhancer;
 });
