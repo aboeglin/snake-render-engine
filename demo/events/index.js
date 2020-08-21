@@ -9,10 +9,8 @@ const gl = canvas.getContext("webgl");
 const render = initRenderer({ gl, width, height });
 const run = initWithRenderer(canvas, render);
 
-const Container = () => (
+const Scene = () => (
   <Rect x={320} y={200} z={0} width={640} height={100} onClick={console.log} />
 );
-
-const Scene = () => <Container />;
 
 run(<Scene />);

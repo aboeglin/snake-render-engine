@@ -2,6 +2,7 @@ import { always, curry, eqProps, ifElse, keys, pipe, reduce } from "ramda";
 
 import { pushUpdate } from "./core";
 
+// TODO: split in two so that view nodes have a simplified version of it without state or lifecycles.
 export const Spark = (vnode) => {
   let _this = Object.create(null);
   let isMounted = false;
@@ -61,6 +62,7 @@ export const Spark = (vnode) => {
 
   const render = (vnode) => {
     _dirty = false;
+
     props = vnode.props;
 
     if (
@@ -76,21 +78,29 @@ export const Spark = (vnode) => {
     oldProps = props;
     _vnode = vnode;
 
-    return (_lastRender =
-      typeof _vnode.type === "function"
-        ? _vnode.type(
-            { ..._vnode.props, children: _vnode.children },
-            {
-              state,
-              setState,
-              mounted,
-              unmounted,
-              dynamic,
-              onGlobalKeyPress,
-              onGlobalKeyDown,
-            }
-          )
-        : vnode.children);
+    // Don't pass second parameter if __ENHANCER__ is false/undefined.
+
+    if (_vnode.type && _vnode.type.__ENHANCER__) {
+      _lastRender = _vnode.type(
+        { ..._vnode.props, children: _vnode.children },
+        {
+          state,
+          setState,
+          mounted,
+          unmounted,
+          dynamic,
+          onGlobalKeyPress,
+          onGlobalKeyDown,
+        }
+      );
+    } else {
+      _lastRender =
+        typeof _vnode.type === "function"
+          ? _vnode.type({ ..._vnode.props, children: _vnode.children })
+          : vnode.children;
+    }
+
+    return _lastRender;
   };
 
   const isDirty = () => _dirty;

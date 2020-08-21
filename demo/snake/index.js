@@ -2,114 +2,175 @@ import SRE, {
   initRenderer,
   initWithRenderer,
   Rect,
-  withClock,
-  reconcile,
+  onGlobalKeyDown,
+  withStore,
+  makeStore,
 } from "sre";
-import { dropLast, map, once, pipe } from "ramda";
+
+import {
+  append,
+  assoc,
+  cond,
+  curry,
+  dropLast,
+  last,
+  map,
+  objOf,
+  pipe,
+  propEq,
+  propOr,
+  when,
+} from "ramda";
 
 const canvas = document.getElementById("canvas");
-const height = canvas.height;
 const width = canvas.width;
+const height = canvas.height;
 
 const gl = canvas.getContext("webgl");
 
 const render = initRenderer({ gl, width, height });
 const run = initWithRenderer(canvas, render);
 
-const Directions = {
+const Directions = Object.freeze({
   UP: "UP",
   DOWN: "DOWN",
   LEFT: "LEFT",
   RIGHT: "RIGHT",
+});
+
+const generateRandomPosition = (random) =>
+  pipe(
+    (r) => ({ x: r() * (width - 20), y: r() * (height - 20) }), // generateRandom
+    map(
+      pipe(
+        Math.ceil,
+        (x) => x - (x % 20) + 10
+      )
+    )
+  )(random);
+
+const INITIAL_TAIL = [
+  { x: 310, y: 30 },
+  { x: 310, y: 10 },
+  { x: 310, y: -10 },
+];
+const INITIAL_STATE = {
+  tail: INITIAL_TAIL,
+  direction: Directions.UP,
+  wishedDirection: Directions.UP,
+  apple: generateRandomPosition(Math.random),
 };
 
-// const withDirection = (Node) => {
-//   const Direction = (
-//     props,
-//     { onGlobalKeyDown, state = Directions.UP, setState }
-//   ) => {
-//     onGlobalKeyDown((e) => {
-//       if (e.key === "ArrowDown" && state !== Directions.UP) {
-//         setState(Directions.DOWN);
-//       } else if (e.key === "ArrowUp" && state !== Directions.DOWN) {
-//         setState(Directions.UP);
-//       } else if (e.key === "ArrowLeft" && state !== Directions.RIGHT) {
-//         setState(Directions.LEFT);
-//       } else if (e.key === "ArrowRight" && state !== Directions.LEFT) {
-//         setState(Directions.RIGHT);
-//       }
-//     });
+const computeMove = curry((direction, tail) =>
+  pipe(
+    objOf("d"),
+    assoc("h", tail[0]),
+    cond([
+      [propEq("d", Directions.LEFT), ({ h }) => ({ x: h.x - 20, y: h.y })],
+      [propEq("d", Directions.RIGHT), ({ h }) => ({ x: h.x + 20, y: h.y })],
+      [propEq("d", Directions.UP), ({ h }) => ({ x: h.x, y: h.y + 20 })],
+      [propEq("d", Directions.DOWN), ({ h }) => ({ x: h.x, y: h.y - 20 })],
+    ]),
+    (h) => [h, ...dropLast(1, tail)]
+  )(direction)
+);
 
-//     return <Node {...props} direction={state} />;
-//   };
-//   return Direction;
-// };
+// Actions
+const TickChange = (state) =>
+  pipe(
+    propOr(INITIAL_TAIL, "tail"),
+    computeMove(state.direction),
+    objOf("tail"),
+    assoc("apple", state.apple),
+    when(
+      ({ tail, apple }) => tail[0].x === apple.x && tail[0].y === apple.y,
+      ({ tail }) => ({
+        tail: append(last(state.tail))(tail),
+        apple: generateRandomPosition(Math.random),
+      })
+    ),
+    ({ tail, apple }) => ({
+      ...state,
+      tail,
+      apple,
+    })
+  )(state);
 
-const getT0 = once((t) => t);
+const DirectionChange = (state, direction) =>
+  pipe(
+    (s) => ({ ...s, direction }),
+    TickChange
+  )(state);
 
-const INITIAL_TAIL = [{ x: 320, y: 0 }, { x: 320, y: -20 }, { x: 320, y: -40 }];
-const withTail = (Node) => {
-  const Tail = (
-    props,
-    {
-      onGlobalKeyDown,
-      setState,
-      state = { tail: INITIAL_TAIL, ticks: 0, direction: Directions.UP, wishedDirection: Directions.UP },
+// Subscriptions
+const TickGenerator = (dispatch, getState) => {
+  let currentTicks = 0;
+  let tail, currentTail = getState().tail;
+  let t0 = Date.now();
+
+  const generator = () => {
+    currentTail = getState().tail;
+    if (currentTail !== tail) {
+      currentTicks = 0;
+      t0 = Date.now();
     }
-  ) => {
-    onGlobalKeyDown((e) => {
-      if (state.direction === state.wishedDirection) {
-        if (e.key === "ArrowDown" && state.wishedDirection !== Directions.UP) {
-          setState({ ...state, wishedDirection: Directions.DOWN });
-        } else if (e.key === "ArrowUp" && state.wishedDirection !== Directions.DOWN) {
-          setState({ ...state, wishedDirection: Directions.UP });
-        } else if (e.key === "ArrowLeft" && state.wishedDirection !== Directions.RIGHT) {
-          setState({ ...state, wishedDirection: Directions.LEFT });
-        } else if (e.key === "ArrowRight" && state.wishedDirection !== Directions.LEFT) {
-          setState({ ...state, wishedDirection: Directions.RIGHT });
-        }
-      }
-    });
 
-    const currentTicks = pipe(
-      (t) => t - getT0(t),
-      (t) => Math.floor((t * Math.sqrt(state.tail.length)) / 300)
-    )(props.time);
+    const tailLength = getState().tail.length;
+    const time = Date.now();
+    const dt = time - t0;
+    const newTicks = Math.floor((dt * Math.sqrt(tailLength)) / 300);
 
-    if (currentTicks > state.ticks) {
-      // perform move:
-      const firstPiece = state.tail[0];
-      const middlePieces = dropLast(1, state.tail);
-      let newX = firstPiece.x;
-      let newY = firstPiece.y;
-      if (state.wishedDirection === Directions.LEFT) {
-        newX = newX - 20;
-      } else if (state.wishedDirection === Directions.RIGHT) {
-        newX = newX + 20;
-      }
-      if (state.wishedDirection === Directions.UP) {
-        newY = newY + 20;
-      } else if (state.wishedDirection === Directions.DOWN) {
-        newY = newY - 20;
-      }
-
-      const newTail = [{ x: newX, y: newY }, ...middlePieces];
-      setState({ ...state, tail: newTail, ticks: currentTicks, direction: state.wishedDirection });
+    if (newTicks > currentTicks) {
+      currentTicks = newTicks;
+      dispatch(TickChange, null);
     }
-    return <Node {...props} tail={state.tail} />;
+
+    tail = currentTail;
+    requestAnimationFrame(generator);
   };
-  return Tail;
+
+  generator();
 };
 
+const DirectionHandler = (dispatch, getState) => {
+  onGlobalKeyDown((e) => {
+    const { direction } = getState();
+    if (e.key === "ArrowDown" && direction !== Directions.UP) {
+      dispatch(DirectionChange, Directions.DOWN);
+    } else if (e.key === "ArrowUp" && direction !== Directions.DOWN) {
+      dispatch(DirectionChange, Directions.UP);
+    } else if (e.key === "ArrowLeft" && direction !== Directions.RIGHT) {
+      dispatch(DirectionChange, Directions.LEFT);
+    } else if (e.key === "ArrowRight" && direction !== Directions.LEFT) {
+      dispatch(DirectionChange, Directions.RIGHT);
+    }
+  });
+};
+
+const store = makeStore(INITIAL_STATE, [TickGenerator, DirectionHandler]);
+
+// Views
 const Snake = ({ tail }) =>
   map(({ x, y }) => <TailPiece position={{ x, y }} />)(tail);
 
-const TailPiece = ({ position }, {}) => (
-  <Rect x={position.x} y={position.y} z={0} width={18} height={18} />
+const TailPiece = ({ position }) => (
+  <Rect x={position.x} y={position.y} z={0} width={19} height={19} />
 );
 
-const EnhancedSnake = withClock(Date.now, withTail(Snake));
+const Apple = ({ apple }) => (
+  <Rect x={apple.x} y={apple.y} z={0} width={10} height={10} />
+);
 
-const Scene = () => <EnhancedSnake />;
+const mapStateToProps = (state) => ({
+  tail: state.tail,
+  wishedDirection: state.wishedDirection,
+  direction: state.direction,
+});
+
+const EnhancedSnake = withStore(store)(mapStateToProps)(Snake);
+const EnhancedApple = withStore(store)((state) => ({ apple: state.apple }))(
+  Apple
+);
+const Scene = () => [<EnhancedApple />, <EnhancedSnake />];
 
 run(<Scene />);

@@ -7,6 +7,12 @@ const Events = {
   UNKNOWN: "unknown",
 };
 
+const keyPressListeners = [];
+const keyDownListeners = [];
+
+export const onGlobalKeyPress = (cb) => keyPressListeners.push(cb);
+export const onGlobalKeyDown = (cb) => keyDownListeners.push(cb);
+
 // Add main event types and not only clicks:
 // - mousemove
 // - keydown
@@ -35,11 +41,28 @@ export const handleEvent = curry((event, root) => {
     }
   } else {
     // TODO: _instance is not defined for _system nodes such as Rect, add test for that
-    if (event.type === Events.KEYPRESS && root._instance && root._instance.getGlobalKeyPressHandler()) {
-      root._instance.getGlobalKeyPressHandler()(event);
-    } else if (event.type === Events.KEYDOWN && root._instance && root._instance.getGlobalKeyDownHandler()) {
-      root._instance.getGlobalKeyDownHandler()(event);
+    // if (
+    //   event.type === Events.KEYPRESS &&
+    //   root._instance &&
+    //   root._instance.getGlobalKeyPressHandler()
+    // ) {
+    //   root._instance.getGlobalKeyPressHandler()(event);
+    // } else if (
+    //   event.type === Events.KEYDOWN &&
+    //   root._instance &&
+    //   root._instance.getGlobalKeyDownHandler()
+    // ) {
+    //   root._instance.getGlobalKeyDownHandler()(event);
+    // }
+
+    if (event.type === Events.KEYPRESS) {
+      forEach((f) => f(event))(keyPressListeners);
+      return;
+    } else if (event.type === Events.KEYDOWN) {
+      forEach((f) => f(event))(keyDownListeners);
+      return;
     }
+
 
     forEach(handleEvent(event))(root.children);
   }

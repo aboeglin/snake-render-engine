@@ -266,4 +266,10 @@ describe("renderer", () => {
 
     expect(actual).toEqual(expected);
   });
+
+  test("it should throw if gl context is falsy", () => {
+    expect(() => initRenderer({})).toThrow();
+    expect(() => initRenderer({ gl: null })).toThrow();
+    expect(() => initRenderer({ gl: undefined })).toThrow();
+  });
 });

@@ -1,9 +1,7 @@
-// Add tests for it
 export const createElement = (type, props = {}, children = []) => {
   if (!props) {
     props = {};
   }
-
   const { key, ...realProps } = props;
 
   return VNode(type, realProps, children, key);

@@ -5,7 +5,7 @@ import { createColorProgram, createTextureProgram } from "./programs";
 import { makeTextureHandler } from "./textures";
 
 export const initRenderer = ({ gl, width, height }) => {
-  if (gl === undefined) {
+  if (!gl) {
     throw new Error("You must provide a context !");
   }
 
@@ -29,35 +29,41 @@ const computeMatrixStack = (matrices) => [
 ];
 
 // TODO: add transform relative or absolute ( currently it's all absolute )
-const render = curry(({ gl, programs, getTexture, matrices }, root) => {
-  let nextMatrices = matrices;
-  if (root.type === "RECT") {
-    nextMatrices = insert(
-      1,
-      mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
-      nextMatrices
-    );
-    nextMatrices = computeMatrixStack(nextMatrices);
-    renderRect({ gl, program: programs.color, matrix: nextMatrices[0] }, root);
-  } else if (root.type === "TRANSFORM") {
-    nextMatrices = handleTransformNode(nextMatrices, root);
-  } else if (root.type === "SPRITE") {
-    // Should use same transform as rect ?
-    nextMatrices = insert(
-      1,
-      mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
-      nextMatrices
-    );
-    nextMatrices = computeMatrixStack(nextMatrices);
-    renderSprite(
-      { gl, program: programs.texture, matrix: nextMatrices[0], getTexture },
-      root
-    );
-  }
+const render = curry(({ gl, programs, getTexture, matrices: rootMatrices }, root) => {
+  const recurse = curry((matrices, node) => {
+    let nextMatrices = matrices;
+    if (node.type === "RECT") {
+      nextMatrices = insert(
+        1,
+        mat4.fromTranslation([], [node.props.x, node.props.y, node.props.z]),
+        nextMatrices
+      );
+      nextMatrices = computeMatrixStack(nextMatrices);
+      renderRect(
+        { gl, program: programs.color, matrix: nextMatrices[0] },
+        node
+      );
+    } else if (node.type === "TRANSFORM") {
+      nextMatrices = handleTransformNode(nextMatrices, node);
+    } else if (node.type === "SPRITE") {
+      // Should use same transform as rect ?
+      nextMatrices = insert(
+        1,
+        mat4.fromTranslation([], [node.props.x, node.props.y, node.props.z]),
+        nextMatrices
+      );
+      nextMatrices = computeMatrixStack(nextMatrices);
+      renderSprite(
+        { gl, program: programs.texture, matrix: nextMatrices[0], getTexture },
+        node
+      );
+    }
 
-  propOr([], "children", root).forEach((node) =>
-    render({ gl, programs, getTexture, matrices: nextMatrices }, node)
-  );
+    propOr([], "children", node).forEach(recurse(nextMatrices));
+  });
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  recurse(rootMatrices, root);
 });
 
 const renderSprite = ({ gl, program, getTexture, matrix }, root) => {
