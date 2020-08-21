@@ -57,6 +57,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - run: apt update
+      - run: apt install libxi-dev xserver-xorg-input-libinput-dev
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ env.node-version }}
         uses: actions/setup-node@v1
