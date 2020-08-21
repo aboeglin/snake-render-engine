@@ -1,4 +1,5 @@
 export { initWithRenderer, reconcile, enhance } from "./core";
+export { makeStore, withStore } from "./store";
 export { createElement } from "./create-element";
 export { initRenderer } from "./renderer/renderer";
 export { onGlobalKeyPress, onGlobalKeyDown } from "./events";

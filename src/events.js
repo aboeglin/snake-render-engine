@@ -41,25 +41,28 @@ export const handleEvent = curry((event, root) => {
     }
   } else {
     // TODO: _instance is not defined for _system nodes such as Rect, add test for that
+    // if (
+    //   event.type === Events.KEYPRESS &&
+    //   root._instance &&
+    //   root._instance.getGlobalKeyPressHandler()
+    // ) {
+    //   root._instance.getGlobalKeyPressHandler()(event);
+    // } else if (
+    //   event.type === Events.KEYDOWN &&
+    //   root._instance &&
+    //   root._instance.getGlobalKeyDownHandler()
+    // ) {
+    //   root._instance.getGlobalKeyDownHandler()(event);
+    // }
+
     if (event.type === Events.KEYPRESS) {
       forEach((f) => f(event))(keyPressListeners);
+      return;
     } else if (event.type === Events.KEYDOWN) {
       forEach((f) => f(event))(keyDownListeners);
+      return;
     }
 
-    if (
-      event.type === Events.KEYPRESS &&
-      root._instance &&
-      root._instance.getGlobalKeyPressHandler()
-    ) {
-      root._instance.getGlobalKeyPressHandler()(event);
-    } else if (
-      event.type === Events.KEYDOWN &&
-      root._instance &&
-      root._instance.getGlobalKeyDownHandler()
-    ) {
-      root._instance.getGlobalKeyDownHandler()(event);
-    }
 
     forEach(handleEvent(event))(root.children);
   }

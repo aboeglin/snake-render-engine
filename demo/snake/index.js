@@ -2,84 +2,26 @@ import SRE, {
   initRenderer,
   initWithRenderer,
   Rect,
-  enhance,
   onGlobalKeyDown,
+  withStore,
+  makeStore,
 } from "sre";
 
 import {
   append,
   assoc,
+  cond,
   curry,
   dropLast,
+  last,
   map,
   objOf,
-  once,
   pipe,
   propEq,
   propOr,
-  reject,
   when,
-  forEach,
 } from "ramda";
 
-// Store
-const makeStore = (initialState = {}, subs = []) => {
-  let state = initialState;
-  let listeners = [];
-
-  const dispatch = curry((action, payload) => {
-    state = action(state, payload);
-    listeners.forEach((f) => f(state));
-  });
-
-  const listen = (cb) => {
-    listeners = append(cb, listeners);
-    cb(state);
-
-    return () => {
-      listeners = reject(cb, listeners);
-    };
-  };
-
-  const getState = () => state;
-
-  forEach((s) => s(dispatch, getState))(subs);
-
-  return {
-    listen,
-    dispatch,
-    getState,
-  };
-};
-
-const withStore = (store) => (
-  mapStateToProps = () => ({}),
-  mapDispatchToProps = () => ({})
-) => {
-  let unlisten = null;
-  return enhance(
-    ({
-      state = mapStateToProps(store.getState()),
-      setState,
-      mounted,
-      unmounted,
-    }) => {
-      const handleStateChanged = (newState) => {
-        setState(mapStateToProps(newState));
-      };
-
-      mounted(() => {
-        unlisten = store.listen(handleStateChanged);
-      });
-
-      unmounted(() => unlisten && unlisten());
-
-      return { ...state, ...mapDispatchToProps(store.dispatch) };
-    }
-  )("store");
-};
-
-// ---- BEGINNING ---
 const canvas = document.getElementById("canvas");
 const width = canvas.width;
 const height = canvas.height;
@@ -111,8 +53,6 @@ const INITIAL_TAIL = [
   { x: 310, y: 30 },
   { x: 310, y: 10 },
   { x: 310, y: -10 },
-  { x: 310, y: -30 },
-  { x: 310, y: -50 },
 ];
 const INITIAL_STATE = {
   tail: INITIAL_TAIL,
@@ -121,34 +61,63 @@ const INITIAL_STATE = {
   apple: generateRandomPosition(Math.random),
 };
 
-const getT0 = once((t) => t);
-
 const computeMove = curry((direction, tail) =>
   pipe(
     objOf("d"),
     assoc("h", tail[0]),
-    when(propEq("d", Directions.LEFT), ({ h }) => ({ x: h.x - 20, y: h.y })),
-    when(propEq("d", Directions.RIGHT), ({ h }) => ({ x: h.x + 20, y: h.y })),
-    when(propEq("d", Directions.UP), ({ h }) => ({ x: h.x, y: h.y + 20 })),
-    when(propEq("d", Directions.DOWN), ({ h }) => ({ x: h.x, y: h.y - 20 })),
+    cond([
+      [propEq("d", Directions.LEFT), ({ h }) => ({ x: h.x - 20, y: h.y })],
+      [propEq("d", Directions.RIGHT), ({ h }) => ({ x: h.x + 20, y: h.y })],
+      [propEq("d", Directions.UP), ({ h }) => ({ x: h.x, y: h.y + 20 })],
+      [propEq("d", Directions.DOWN), ({ h }) => ({ x: h.x, y: h.y - 20 })],
+    ]),
     (h) => [h, ...dropLast(1, tail)]
   )(direction)
 );
 
+// Actions
 const TickChange = (state) =>
   pipe(
     propOr(INITIAL_TAIL, "tail"),
     computeMove(state.direction),
-    (tail) => ({ ...state, tail, direction: state.wishedDirection })
+    objOf("tail"),
+    assoc("apple", state.apple),
+    when(
+      ({ tail, apple }) => tail[0].x === apple.x && tail[0].y === apple.y,
+      ({ tail }) => ({
+        tail: append(last(state.tail))(tail),
+        apple: generateRandomPosition(Math.random),
+      })
+    ),
+    ({ tail, apple }) => ({
+      ...state,
+      tail,
+      apple,
+    })
   )(state);
 
+const DirectionChange = (state, direction) =>
+  pipe(
+    (s) => ({ ...s, direction }),
+    TickChange
+  )(state);
+
+// Subscriptions
 const TickGenerator = (dispatch, getState) => {
   let currentTicks = 0;
+  let tail, currentTail = getState().tail;
+  let t0 = Date.now();
 
   const generator = () => {
+    currentTail = getState().tail;
+    if (currentTail !== tail) {
+      currentTicks = 0;
+      t0 = Date.now();
+    }
+
     const tailLength = getState().tail.length;
     const time = Date.now();
-    const dt = time - getT0(time);
+    const dt = time - t0;
     const newTicks = Math.floor((dt * Math.sqrt(tailLength)) / 300);
 
     if (newTicks > currentTicks) {
@@ -156,48 +125,39 @@ const TickGenerator = (dispatch, getState) => {
       dispatch(TickChange, null);
     }
 
-    requestAnimationFrame(() => {
-      generator();
-    });
+    tail = currentTail;
+    requestAnimationFrame(generator);
   };
 
   generator();
 };
 
-const DirectionChange = (state, direction) => ({
-  ...state,
-  wishedDirection: direction,
-});
-
 const DirectionHandler = (dispatch, getState) => {
   onGlobalKeyDown((e) => {
-    const { direction, wishedDirection } = getState();
-    const wd = wishedDirection;
-    if (direction === wd) {
-      if (e.key === "ArrowDown" && wd !== Directions.UP) {
-        dispatch(DirectionChange, Directions.DOWN);
-      } else if (e.key === "ArrowUp" && wd !== Directions.DOWN) {
-        dispatch(DirectionChange, Directions.UP);
-      } else if (e.key === "ArrowLeft" && wd !== Directions.RIGHT) {
-        dispatch(DirectionChange, Directions.LEFT);
-      } else if (e.key === "ArrowRight" && wd !== Directions.LEFT) {
-        dispatch(DirectionChange, Directions.RIGHT);
-      }
+    const { direction } = getState();
+    if (e.key === "ArrowDown" && direction !== Directions.UP) {
+      dispatch(DirectionChange, Directions.DOWN);
+    } else if (e.key === "ArrowUp" && direction !== Directions.DOWN) {
+      dispatch(DirectionChange, Directions.UP);
+    } else if (e.key === "ArrowLeft" && direction !== Directions.RIGHT) {
+      dispatch(DirectionChange, Directions.LEFT);
+    } else if (e.key === "ArrowRight" && direction !== Directions.LEFT) {
+      dispatch(DirectionChange, Directions.RIGHT);
     }
   });
 };
 
 const store = makeStore(INITIAL_STATE, [TickGenerator, DirectionHandler]);
 
-// Components
-const Snake = ({ store: { tail } }) =>
+// Views
+const Snake = ({ tail }) =>
   map(({ x, y }) => <TailPiece position={{ x, y }} />)(tail);
 
 const TailPiece = ({ position }) => (
   <Rect x={position.x} y={position.y} z={0} width={19} height={19} />
 );
 
-const Apple = ({ store: { apple } }) => (
+const Apple = ({ apple }) => (
   <Rect x={apple.x} y={apple.y} z={0} width={10} height={10} />
 );
 
