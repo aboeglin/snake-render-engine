@@ -48,6 +48,7 @@ const makeStore = (initialState = {}, subs = []) => {
   return {
     listen,
     dispatch,
+    getState,
   };
 };
 
@@ -56,19 +57,26 @@ const withStore = (store) => (
   mapDispatchToProps = () => ({})
 ) => {
   let unlisten = null;
-  return enhance(({ state = {}, setState, mounted, unmounted }) => {
-    const handleStateChanged = (newState) => {
-      setState(mapStateToProps(newState));
-    };
+  return enhance(
+    ({
+      state = mapStateToProps(store.getState()),
+      setState,
+      mounted,
+      unmounted,
+    }) => {
+      const handleStateChanged = (newState) => {
+        setState(mapStateToProps(newState));
+      };
 
-    mounted(() => {
-      unlisten = store.listen(handleStateChanged);
-    });
+      mounted(() => {
+        unlisten = store.listen(handleStateChanged);
+      });
 
-    unmounted(() => unlisten && unlisten());
+      unmounted(() => unlisten && unlisten());
 
-    return { ...state, ...mapDispatchToProps(store.dispatch) };
-  })("store");
+      return { ...state, ...mapDispatchToProps(store.dispatch) };
+    }
+  )("store");
 };
 
 // ---- BEGINNING ---
@@ -88,11 +96,29 @@ const Directions = Object.freeze({
   RIGHT: "RIGHT",
 });
 
-const INITIAL_TAIL = [{ x: 310, y: 30 }, { x: 310, y: 10 }, { x: 310, y: -10 }, { x: 310, y: -30 }, { x: 310, y: -50 }];
+const generateRandomPosition = (random) =>
+  pipe(
+    (r) => ({ x: r() * (width - 20), y: r() * (height - 20) }), // generateRandom
+    map(
+      pipe(
+        Math.ceil,
+        (x) => x - (x % 20) + 10
+      )
+    )
+  )(random);
+
+const INITIAL_TAIL = [
+  { x: 310, y: 30 },
+  { x: 310, y: 10 },
+  { x: 310, y: -10 },
+  { x: 310, y: -30 },
+  { x: 310, y: -50 },
+];
 const INITIAL_STATE = {
   tail: INITIAL_TAIL,
   direction: Directions.UP,
   wishedDirection: Directions.UP,
+  apple: generateRandomPosition(Math.random),
 };
 
 const getT0 = once((t) => t);
@@ -164,11 +190,15 @@ const DirectionHandler = (dispatch, getState) => {
 const store = makeStore(INITIAL_STATE, [TickGenerator, DirectionHandler]);
 
 // Components
-const Snake = ({ store: { tail = [] } }) =>
+const Snake = ({ store: { tail } }) =>
   map(({ x, y }) => <TailPiece position={{ x, y }} />)(tail);
 
 const TailPiece = ({ position }) => (
   <Rect x={position.x} y={position.y} z={0} width={19} height={19} />
+);
+
+const Apple = ({ store: { apple } }) => (
+  <Rect x={apple.x} y={apple.y} z={0} width={10} height={10} />
 );
 
 const mapStateToProps = (state) => ({
@@ -178,6 +208,9 @@ const mapStateToProps = (state) => ({
 });
 
 const EnhancedSnake = withStore(store)(mapStateToProps)(Snake);
-const Scene = () => <EnhancedSnake />;
+const EnhancedApple = withStore(store)((state) => ({ apple: state.apple }))(
+  Apple
+);
+const Scene = () => [<EnhancedApple />, <EnhancedSnake />];
 
 run(<Scene />);

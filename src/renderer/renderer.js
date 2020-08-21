@@ -29,41 +29,41 @@ const computeMatrixStack = (matrices) => [
 ];
 
 // TODO: add transform relative or absolute ( currently it's all absolute )
-const render = curry(({ gl, programs, getTexture, matrices }, root) => {
-  const recurse = (root) => {
+const render = curry(({ gl, programs, getTexture, matrices: rootMatrices }, root) => {
+  const recurse = curry((matrices, node) => {
     let nextMatrices = matrices;
-    if (root.type === "RECT") {
+    if (node.type === "RECT") {
       nextMatrices = insert(
         1,
-        mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
+        mat4.fromTranslation([], [node.props.x, node.props.y, node.props.z]),
         nextMatrices
       );
       nextMatrices = computeMatrixStack(nextMatrices);
       renderRect(
         { gl, program: programs.color, matrix: nextMatrices[0] },
-        root
+        node
       );
-    } else if (root.type === "TRANSFORM") {
-      nextMatrices = handleTransformNode(nextMatrices, root);
-    } else if (root.type === "SPRITE") {
+    } else if (node.type === "TRANSFORM") {
+      nextMatrices = handleTransformNode(nextMatrices, node);
+    } else if (node.type === "SPRITE") {
       // Should use same transform as rect ?
       nextMatrices = insert(
         1,
-        mat4.fromTranslation([], [root.props.x, root.props.y, root.props.z]),
+        mat4.fromTranslation([], [node.props.x, node.props.y, node.props.z]),
         nextMatrices
       );
       nextMatrices = computeMatrixStack(nextMatrices);
       renderSprite(
         { gl, program: programs.texture, matrix: nextMatrices[0], getTexture },
-        root
+        node
       );
     }
 
-    propOr([], "children", root).forEach((node) => recurse(node));
-  };
+    propOr([], "children", node).forEach(recurse(nextMatrices));
+  });
 
   gl.clear(gl.COLOR_BUFFER_BIT);
-  recurse(root);
+  recurse(rootMatrices, root);
 });
 
 const renderSprite = ({ gl, program, getTexture, matrix }, root) => {
