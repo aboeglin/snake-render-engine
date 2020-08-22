@@ -2,14 +2,14 @@
 [![Coverage Status](https://coveralls.io/repos/github/aboeglin/snake-render-engine/badge.svg?branch=master)](https://coveralls.io/github/aboeglin/snake-render-engine?branch=master)
 
 # Snake Render Engine
-Snake Render Engine is a 2D render engine based on webgl with a functional API analog to the one of the well known react UI library. It also supports jsx syntax and is component based.
 
-## Gettings started
-Here is a minimal example that highlights how to run it.
+Snake Render Engine is a 2D render engine which wraps [WebGL](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API) with a functional API, analogous to the well-known [React](https://reactjs.org/) UI library. It also supports [JSX syntax](https://reactjs.org/docs/introducing-jsx.html) and is Component based.
 
-```javascript
+Here is a minimal example that highlights how to run it:
+
+```js
 // In order to define components we need to import SRE
-import SRE, { initRenderer, initWithRenderer, Rect } from "sre";
+import SRE, { initRenderer, initWithRenderer, Rect } from "snake-render-engine";
 
 // Get the host canvas where the engine will run
 const canvas = document.getElementById("canvas");
@@ -31,4 +31,29 @@ run(<Scene />);
 ```
 
 ## Demos
-Demos are available here : [demos](https://aboeglin.github.io/snake-render-engine/)
+Demos are available [here](https://aboeglin.github.io/snake-render-engine/)
+
+## Getting started
+
+### Installation
+
+* `npm i nps -g` (Optional: if not wanted, replace `nps` with `npx nps` in the commands below instead.)
+* `npm i`
+
+### Running Locally
+
+* `nps demo` - Serve demo locally to port 1234
+* `nps test` - Run the tests
+
+### Testing
+
+* `nps test`
+
+### Contributing
+
+* Please file issues [here](https://github.com/aboeglin/snake-render-engine/issues)
+* Pull Requests [welcome](https://github.com/aboeglin/snake-render-engine/pulls)
+
+### Active Development
+
+SRE is an actively developed work-in-progress tool. Please reach out on [Github](https://github.com/aboeglin/snake-render-engine) if you want to collaborate on this project!
