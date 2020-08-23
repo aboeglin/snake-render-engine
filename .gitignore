@@ -6,3 +6,4 @@ dist
 .npmrc
 *.swp
 *.un~
+dependencies.svg
