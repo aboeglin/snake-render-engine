@@ -21,7 +21,7 @@ describe("core", () => {
 
   test("reconcile should be able to handle Nodes that return an array of NodeElements", () => {
     const Scene = () => [<Rect x={2} y={3} />, <Rect x={5} y={7} />];
-    const Rect = (props) => ({
+    const Rect = props => ({
       type: "RECT",
       x: props.x,
       y: props.y,
@@ -306,7 +306,7 @@ describe("core", () => {
   test("reconcile should resolve the children correctly", () => {
     const Parent = ({ stuff }) => (
       <Child>
-        {stuff.map((x) => (
+        {stuff.map(x => (
           <GrandChild>{x}</GrandChild>
         ))}
       </Child>
@@ -501,7 +501,7 @@ describe("core", () => {
     expect(actual).toEqual(expected);
   });
 
-  test("updates should not recompute sparks that have already been updated the same batch should update the same spark twice", () => {
+  test("updates should not recompute instances that have already been updated the same batch should update the same instance twice", () => {
     const Wrapper = () => [
       <ChildThatUpdates value={18} />,
       <ChildThatUpdates value={27} />,
@@ -556,7 +556,7 @@ describe("core", () => {
       mounted(() => setState(29));
       return state;
     });
-    const Wrapper = ({ value }) => <Child value={28} />;
+    const Wrapper = () => <Child value={28} />;
     const WrapperWithValue = withState("value", Wrapper);
 
     const Child = jest.fn(({ value }) => {
@@ -698,7 +698,7 @@ describe("core", () => {
     const unmountedFn = jest.fn();
     const mountedFn = jest.fn();
 
-    const withCount = enhance(({ mounted, setState, state = 1 }, props) => {
+    const withCount = enhance(({ mounted, setState, state = 1 }) => {
       mounted(() => {
         setState(2);
       });
@@ -752,7 +752,7 @@ describe("core", () => {
   });
 
   test("children should render children props", () => {
-    const Wrapper = (props) => <Child>{props.children}</Child>;
+    const Wrapper = props => <Child>{props.children}</Child>;
     const Child = ({ children }) => children;
 
     const actual = configuredReconcile(<Wrapper>b</Wrapper>);
@@ -777,7 +777,7 @@ describe("core", () => {
     let mountedFn = null;
 
     const withValueKeeper = enhance(({ setState, state = null }) => {
-      const setValue = (v) => setState(v);
+      const setValue = v => setState(v);
       return { setValue, value: state };
     });
     const withState = enhance(({ mounted, setState, state = 1 }) => {
@@ -796,7 +796,7 @@ describe("core", () => {
       GrandFather
     );
 
-    const Father = (props) => {
+    const Father = props => {
       return <ChildWithValue value={props.value} onChanged={props.onChanged} />;
     };
 
@@ -828,7 +828,7 @@ describe("core", () => {
       return state;
     });
 
-    const Node = (props) => props;
+    const Node = props => props;
     const EnhancedNode = withState("actual", Node);
 
     const vtree = configuredReconcile(<EnhancedNode />); // First render

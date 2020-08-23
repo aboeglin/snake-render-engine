@@ -8,17 +8,17 @@ export const makeStore = (initialState = {}, subs = []) => {
 
   const dispatch = (action, payload) => {
     state = action(state, payload);
-    forEach((f) => f(state))(listeners);
+    forEach(f => f(state))(listeners);
   };
 
-  const listen = (cb) => {
+  const listen = cb => {
     listeners = append(cb, listeners);
-    return () => (listeners = reject((l) => l === cb, listeners));
+    return () => (listeners = reject(l => l === cb, listeners));
   };
 
   const getState = () => state;
 
-  forEach((s) => s(dispatch, getState))(subs);
+  forEach(s => s(dispatch, getState))(subs);
 
   return {
     listen,
@@ -27,17 +27,17 @@ export const makeStore = (initialState = {}, subs = []) => {
   };
 };
 
-export const withStore = (store) => (
-  mapStateToProps = (state) => state,
+export const withStore = store => (
+  mapStateToProps = state => state,
   mapDispatchToProps = () => ({})
-) => (Node) => {
+) => Node => {
   let unlisten = null;
 
   const enhancer = (
     props,
     { state = mapStateToProps(store.getState()), setState, mounted, unmounted }
   ) => {
-    const handleStateChanged = (newState) => {
+    const handleStateChanged = newState => {
       setState(mapStateToProps(newState));
     };
 

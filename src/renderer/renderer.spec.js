@@ -15,7 +15,7 @@ const VIEWPORT_HEIGHT = 128;
 
 let gl = null;
 
-const loadImage = (path) => {
+const loadImage = path => {
   const data = fs.readFileSync(path);
   const image = PNG.sync.read(data);
   const pixels = [];
@@ -36,7 +36,7 @@ const loadImage = (path) => {
   return image;
 };
 
-const enhanceGL = (gl) => {
+const enhanceGL = gl => {
   if (gl.__PATCHED__) return gl;
   gl.__PATCHED__ = true;
 
@@ -77,7 +77,7 @@ describe("renderer", () => {
     expect(() => initRenderer()).toThrow();
   });
 
-  test("renderer should render a Rect", (done) => {
+  test("renderer should render a Rect", done => {
     const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
@@ -91,7 +91,7 @@ describe("renderer", () => {
 
     render(rect);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
       expect(ss).toMatchImageSnapshot({
         failureThreshold: 0.002,
         failureThresholdType: "percent",
@@ -100,7 +100,7 @@ describe("renderer", () => {
     });
   });
 
-  test("renderer should render a Rect with rotation", (done) => {
+  test("renderer should render a Rect with rotation", done => {
     const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
@@ -120,7 +120,7 @@ describe("renderer", () => {
 
     render(scene);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
       expect(ss).toMatchImageSnapshot({
         failureThreshold: 0.002,
         failureThresholdType: "percent",
@@ -129,7 +129,7 @@ describe("renderer", () => {
     });
   });
 
-  test("renderer should apply rotation to grand children", (done) => {
+  test("renderer should apply rotation to grand children", done => {
     const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
@@ -160,7 +160,7 @@ describe("renderer", () => {
 
     render(scene);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
       expect(ss).toMatchImageSnapshot({
         failureThreshold: 0.002,
         failureThresholdType: "percent",
@@ -169,7 +169,7 @@ describe("renderer", () => {
     });
   });
 
-  test("renderer should apply translation to grand children", (done) => {
+  test("renderer should apply translation to grand children", done => {
     const render = initRenderer({
       gl,
       width: VIEWPORT_WIDTH,
@@ -203,7 +203,7 @@ describe("renderer", () => {
 
     render(scene);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
       expect(ss).toMatchImageSnapshot({
         failureThreshold: 0.002,
         failureThresholdType: "percent",
@@ -212,7 +212,7 @@ describe("renderer", () => {
     });
   });
 
-  test("renderer should render static sprites", (done) => {
+  test("renderer should render static sprites", done => {
     const image = loadImage("./fixtures/sprite.png");
 
     const render = initRenderer({
@@ -228,7 +228,7 @@ describe("renderer", () => {
 
     render(scene);
 
-    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then((ss) => {
+    makeSnapshot(gl, VIEWPORT_WIDTH, VIEWPORT_HEIGHT).then(ss => {
       expect(ss).toMatchImageSnapshot();
       done();
     });

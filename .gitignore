@@ -4,3 +4,6 @@ __diff_output__
 dist
 .cache
 .npmrc
+*.swp
+*.un~
+dependencies.svg

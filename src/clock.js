@@ -10,6 +10,6 @@ export const createClock = getTime => {
     },
     start: () => {
       t0 = getTime();
-    }
+    },
   };
 };

@@ -1,12 +1,9 @@
 import { handleEvent, fromDOMEvent } from "./events";
-import { reconcile, enhance } from "./core";
+import { reconcile } from "./core";
 import Rect from "./nodes/rect";
 import { createElement } from "./create-element";
 
 /** @jsx createElement */
-
-const withGlobalEventHandler = (handler, eventName) =>
-  enhance((features) => features[eventName](handler));
 
 // TODO: Rewrite tests with reconcile to have a real tree
 // TODO: Move global events to instance method instead.

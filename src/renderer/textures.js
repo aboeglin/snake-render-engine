@@ -1,8 +1,8 @@
 // TODO: Add unit tests for that feature.
-export const makeTextureHandler = (gl) => {
+export const makeTextureHandler = gl => {
   const textures = new WeakMap();
 
-  const getTexture = (texture) => {
+  const getTexture = texture => {
     if (!textures.get(texture.data)) {
       const glTexture = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, glTexture);

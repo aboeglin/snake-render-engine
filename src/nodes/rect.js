@@ -1,4 +1,4 @@
-const Rect = (props) => ({
+const Rect = props => ({
   type: "RECT",
   props: {
     x: props.x,
