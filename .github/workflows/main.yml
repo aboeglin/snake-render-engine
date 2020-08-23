@@ -22,6 +22,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - run: npm install
+      - run: ./node_modules/.bin/nps lint.dry
+      - run: ./node_modules/.bin/nps format.check
       - run: ./node_modules/.bin/nps test.coverage
       - name: Coveralls
         uses: coverallsapp/github-action@master

@@ -4,7 +4,7 @@ import {
   VERTEX_SHADER,
 } from "./shaders";
 
-export const createColorProgram = (gl) => {
+export const createColorProgram = gl => {
   const vs = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vs, VERTEX_SHADER);
   gl.compileShader(vs);
@@ -35,7 +35,7 @@ export const createColorProgram = (gl) => {
   return program;
 };
 
-export const createTextureProgram = (gl) => {
+export const createTextureProgram = gl => {
   const vs = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vs, VERTEX_SHADER);
   gl.compileShader(vs);

@@ -10,8 +10,8 @@ const Events = {
 const keyPressListeners = [];
 const keyDownListeners = [];
 
-export const onGlobalKeyPress = (cb) => keyPressListeners.push(cb);
-export const onGlobalKeyDown = (cb) => keyDownListeners.push(cb);
+export const onGlobalKeyPress = cb => keyPressListeners.push(cb);
+export const onGlobalKeyDown = cb => keyDownListeners.push(cb);
 
 // Add main event types and not only clicks:
 // - mousemove
@@ -56,13 +56,12 @@ export const handleEvent = curry((event, root) => {
     // }
 
     if (event.type === Events.KEYPRESS) {
-      forEach((f) => f(event))(keyPressListeners);
+      forEach(f => f(event))(keyPressListeners);
       return;
     } else if (event.type === Events.KEYDOWN) {
-      forEach((f) => f(event))(keyDownListeners);
+      forEach(f => f(event))(keyDownListeners);
       return;
     }
-
 
     forEach(handleEvent(event))(root.children);
   }
@@ -83,7 +82,7 @@ const fromClickEvent = curry((container, event) => ({
   y: container.clientHeight - event.offsetY,
 }));
 
-const fromKeyEvent = (event) => ({
+const fromKeyEvent = event => ({
   type: event.type,
   modifiers: [], // Should write test for handling this
   key: event.key,

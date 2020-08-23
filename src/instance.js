@@ -1,9 +1,7 @@
 import { always, curry, eqProps, ifElse, keys, pipe, reduce } from "ramda";
 
-import { pushUpdate } from "./core";
-
 // TODO: split in two so that view nodes have a simplified version of it without state or lifecycles.
-export const Spark = (vnode) => {
+export const Instance = (update, vnode) => {
   let _this = Object.create(null);
   let isMounted = false;
   let unmountedFn = null;
@@ -18,28 +16,28 @@ export const Spark = (vnode) => {
   let globalKeyPressHandler = null;
   let globalKeyDownHandler = null;
 
-  const onGlobalKeyPress = (fn) => {
+  const onGlobalKeyPress = fn => {
     globalKeyPressHandler = fn;
   };
 
-  const onGlobalKeyDown = (fn) => {
+  const onGlobalKeyDown = fn => {
     globalKeyDownHandler = fn;
   };
 
-  const setState = (newState) => {
+  const setState = newState => {
     nextState = newState;
 
-    pushUpdate(_this);
+    update(_this);
   };
 
-  const mounted = (fn) => {
+  const mounted = fn => {
     if (!isMounted) {
       isMounted = true;
       fn();
     }
   };
 
-  const unmounted = (fn) => {
+  const unmounted = fn => {
     unmountedFn = fn;
   };
 
@@ -51,16 +49,16 @@ export const Spark = (vnode) => {
 
   const getVNode = () => _vnode;
 
-  const dynamic = (d) => {
+  const dynamic = d => {
     if (!_dynamic) {
-      pushUpdate(_this);
+      update(_this);
     }
     _dynamic = d;
   };
 
   const isDynamic = () => _dynamic;
 
-  const render = (vnode) => {
+  const render = vnode => {
     _dirty = false;
 
     props = vnode.props;
@@ -125,7 +123,7 @@ export const Spark = (vnode) => {
 
 const arePropsEqual = curry((prevProps, nextProps) =>
   ifElse(
-    (x) => keys(x).length === keys(nextProps).length,
+    x => keys(x).length === keys(nextProps).length,
     pipe(
       keys,
       reduce((r, key) => eqProps(key, prevProps, nextProps) && r, true)

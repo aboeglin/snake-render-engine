@@ -1,4 +1,5 @@
 module.exports = {
   "*.{js,css,md}": "prettier --write",
-  "*.spec.js": [`jest --bail --findRelatedTests --passWithNoTests`]
+  "*.js": ["eslint --fix-dry-run", "prettier --check"],
+  "*.spec.js": [`jest --bail --findRelatedTests --passWithNoTests`],
 };

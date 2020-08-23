@@ -64,7 +64,7 @@ describe("Rect", () => {
   });
 
   test("The node functions should be able to render custom logic nodes", () => {
-    const CustomNode = (props) => (
+    const CustomNode = props => (
       <Rect
         x={props.x / 2}
         y={props.y / 2}

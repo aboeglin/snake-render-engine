@@ -1,6 +1,6 @@
 import { curry, pipe } from "ramda";
 
-import { Spark } from "./spark";
+import { Instance } from "./instance";
 import { createElement } from "./create-element";
 import { createClock } from "./clock";
 import { handleEvent, fromDOMEvent } from "./events";
@@ -25,33 +25,33 @@ const throttle = curry((delay, fn) => {
 
 const updateQueue = [];
 
-export const pushUpdate = (spark) => {
-  spark.makeDirty();
-  updateQueue.push(spark);
+export const pushUpdate = instance => {
+  instance.makeDirty();
+  updateQueue.push(instance);
   processQueue();
 };
 
 const processQueue = throttle(constants.BATCH_UPDATE_INTERVAL, () => {
-  const dynamicSparks = [];
-  let sparkToUpdate;
-  while ((sparkToUpdate = updateQueue.shift())) {
-    if (sparkToUpdate.isDirty()) {
-      reconcile({}, sparkToUpdate.getVNode());
+  const dynamicInstances = [];
+  let instanceToUpdate;
+  while ((instanceToUpdate = updateQueue.shift())) {
+    if (instanceToUpdate.isDirty()) {
+      reconcile({}, instanceToUpdate.getVNode());
     }
 
-    if (sparkToUpdate.isDynamic()) {
-      dynamicSparks.push(sparkToUpdate);
+    if (instanceToUpdate.isDynamic()) {
+      dynamicInstances.push(instanceToUpdate);
     }
   }
-  // When everything is processed and the queue is empty, we already push the dynamic sparks for the next iteration
+  // When everything is processed and the queue is empty, we already push the dynamic instances for the next iteration
   // We need the timeout to avoid the recursion
-  setTimeout(() => dynamicSparks.forEach(pushUpdate), 0);
+  setTimeout(() => dynamicInstances.forEach(pushUpdate), 0);
 });
 
-const sparkFromNode = (vnode) => {
+const instanceFromNode = vnode => {
   if (vnode && !vnode._instance) {
     Object.defineProperty(vnode, "_instance", {
-      value: Spark(vnode),
+      value: Instance(pushUpdate, vnode),
       configurable: false,
       writable: false,
     });
@@ -60,7 +60,7 @@ const sparkFromNode = (vnode) => {
   return vnode._instance;
 };
 
-const sanitizeAndCopyChildren = (children) => {
+const sanitizeAndCopyChildren = children => {
   if (Array.isArray(children)) {
     return [...children];
   } else if (children) {
@@ -73,7 +73,7 @@ export const reconcile = curry((config, vnode) => {
   // We need that copy for the unmount, otherwise the tree is already mutated and we can't diff it anymore.
   const oldChildren = sanitizeAndCopyChildren(vnode.children);
 
-  let instance = sparkFromNode(vnode);
+  let instance = instanceFromNode(vnode);
 
   // Compute the children of the newNode
   const nextRender = instance.render(vnode) || [];
@@ -154,7 +154,7 @@ export const reconcile = curry((config, vnode) => {
 });
 
 const findVNodeByKey = curry((children, fallback, key) =>
-  key !== undefined ? children.find((x) => x.key === key) || fallback : fallback
+  key !== undefined ? children.find(x => x.key === key) || fallback : fallback
 );
 
 export const initWithRenderer = (container, render, config = defaultConfig) => {
@@ -163,10 +163,10 @@ export const initWithRenderer = (container, render, config = defaultConfig) => {
 
   const wireEvent = pipe(
     fromDOMEvent(container),
-    (event) => handleEvent(event, tree)
+    event => handleEvent(event, tree)
   );
 
-  const start = (vnode) => {
+  const start = vnode => {
     tree = reconcile(config, vnode);
     renderLoop();
   };

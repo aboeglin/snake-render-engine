@@ -16,11 +16,11 @@ describe("store", () => {
     expect(typeof store.getState).toBe("function");
   });
 
-  test("dispatched actions should update the state and call listeners with state update", (done) => {
+  test("dispatched actions should update the state and call listeners with state update", done => {
     const store = makeStore();
 
-    const Action = (state) => ({ modified: true });
-    const listener = (state) => {
+    const Action = () => ({ modified: true });
+    const listener = state => {
       expect(state.modified).toBe(true);
       done();
     };
@@ -29,13 +29,13 @@ describe("store", () => {
     store.dispatch(Action);
   });
 
-  test("getState return the current state", (done) => {
+  test("getState return the current state", done => {
     const store = makeStore();
 
     expect(store.getState()).toEqual({});
 
-    const Action = (state) => ({ modified: true });
-    const listener = (state) => {
+    const Action = () => ({ modified: true });
+    const listener = state => {
       expect(state.modified).toBe(true);
       expect(store.getState()).toBe(state);
       done();
@@ -50,16 +50,16 @@ describe("store", () => {
     expect(store.getState()).toEqual(1);
   });
 
-  test("makeStore should take an array of subscriptions as a second param", (done) => {
+  test("makeStore should take an array of subscriptions as a second param", done => {
     jest.useFakeTimers();
 
-    const Action = (state) => ({ modified: true });
-    const Subscription = (dispatch, getState) => {
+    const Action = () => ({ modified: true });
+    const Subscription = dispatch => {
       setTimeout(() => dispatch(Action), 1000);
     };
     const store = makeStore({}, [Subscription]);
 
-    const listener = (state) => {
+    const listener = state => {
       expect(state.modified).toBe(true);
       jest.resetAllMocks();
       done();
@@ -75,7 +75,7 @@ describe("store", () => {
     const unlisten = store.listen(listener);
     unlisten();
 
-    store.dispatch((x) => x);
+    store.dispatch(x => x);
 
     expect(listener).not.toHaveBeenCalled();
   });
@@ -85,8 +85,8 @@ describe("withStore", () => {
   test("withStore should provide state to wrapped component", () => {
     const store = makeStore({ data: 1 });
 
-    const Node = (props) => props;
-    const NodeWithData = withStore(store)((state) => state)(Node);
+    const Node = props => props;
+    const NodeWithData = withStore(store)(state => state)(Node);
 
     const vtree = configuredReconcile(<NodeWithData />);
 
@@ -96,7 +96,7 @@ describe("withStore", () => {
   test("withStore should provide the whole state if mapStateToProps is not given", () => {
     const store = makeStore({ data: 1 });
 
-    const Node = (props) => props;
+    const Node = props => props;
     const NodeWithData = withStore(store)()(Node);
 
     const vtree = configuredReconcile(<NodeWithData />);
@@ -108,13 +108,13 @@ describe("withStore", () => {
     jest.useFakeTimers();
 
     const store = makeStore({ data: 1 });
-    const Action = (state) => ({ data: 2 });
-    const mapDispatchToProps = (dispatch) => ({
+    const Action = () => ({ data: 2 });
+    const mapDispatchToProps = dispatch => ({
       onChange: () => dispatch(Action),
     });
 
-    const Node = (props) => props;
-    const NodeWithData = withStore(store)((x) => x, mapDispatchToProps)(Node);
+    const Node = props => props;
+    const NodeWithData = withStore(store)(x => x, mapDispatchToProps)(Node);
 
     const vtree = configuredReconcile(<NodeWithData />);
 
@@ -140,7 +140,7 @@ describe("withStore", () => {
     const store = makeStore({ data: 1 });
     const unlisten = jest.fn();
     store.listen = () => unlisten;
-    
+
     let renderCount = 0;
     const renderTriggerer = enhance(({ mounted, setState, state }) => {
       mounted(() => setState(Math.random()));
@@ -150,10 +150,10 @@ describe("withStore", () => {
       renderCount = renderCount + 1;
       return renderCount === 1 ? <NodeWithData /> : null;
     });
-    const Node = (props) => props;
+    const Node = props => props;
     const NodeWithData = withStore(store)()(Node);
 
-    const vtree = configuredReconcile(<Wrapper />);
+    configuredReconcile(<Wrapper />);
 
     jest.advanceTimersByTime(constants.BATCH_UPDATE_INTERVAL);
 

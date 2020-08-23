@@ -1,5 +1,5 @@
 // TODO: Should add events ?
-const Sprite = (props) => ({
+const Sprite = props => ({
   type: "SPRITE",
   x: props.x,
   y: props.y,
