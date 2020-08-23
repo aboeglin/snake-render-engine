@@ -15,16 +15,6 @@ export const Spark = (vnode) => {
   let _dirty = true;
   let _lastRender = null;
   let _dynamic = false;
-  let globalKeyPressHandler = null;
-  let globalKeyDownHandler = null;
-
-  const onGlobalKeyPress = (fn) => {
-    globalKeyPressHandler = fn;
-  };
-
-  const onGlobalKeyDown = (fn) => {
-    globalKeyDownHandler = fn;
-  };
 
   const setState = (newState) => {
     nextState = newState;
@@ -89,8 +79,6 @@ export const Spark = (vnode) => {
           mounted,
           unmounted,
           dynamic,
-          onGlobalKeyPress,
-          onGlobalKeyDown,
         }
       );
     } else {
@@ -118,8 +106,6 @@ export const Spark = (vnode) => {
     isDirty,
     makeDirty,
     isDynamic,
-    getGlobalKeyPressHandler: () => globalKeyPressHandler,
-    getGlobalKeyDownHandler: () => globalKeyDownHandler,
   });
 };
 
